@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.example.woodsbxbraintree",
+    "sha256_cert_fingerprints": ["84:93:80:02:1C:46:EC:F3:02:09:B3:3F:34:0A:0A:95:C2:D8:7E:96:E8:DE:CF:BD:BD:AE:98:BE:7F:D5:14:3D"]
+  }
+}]
