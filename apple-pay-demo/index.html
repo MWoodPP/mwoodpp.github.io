@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Apple Pay Demo — Braintree</title>
+<link rel="stylesheet" href="/shared/style.css">
+<script src="https://js.braintreegateway.com/web/3.140.0/js/client.min.js"></script>
+<script src="https://js.braintreegateway.com/web/3.140.0/js/apple-pay.min.js"></script>
+<!-- Enables ApplePaySession support in non-Safari browsers on iOS 18+
+     (same-device only — e.g. Chrome running on an iPhone itself. Does not
+     enable Apple Pay in desktop Chrome on a Mac/PC; that combination has
+     no supported path at all. See app.js header comment for details. -->
+<script crossorigin src="https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js"></script>
+</head>
+<body>
+
+  <!-- ================= TOP BAR ================= -->
+  <div class="top-bar">
+    <div class="brand">
+      <a href="/" style="color:inherit;text-decoration:none;">🧾 Braintree Demo Suite</a>
+      <span class="badge">Sandbox</span>
+      <span class="badge group-badge">One Time Payment</span>
+    </div>
+    <div class="token-row">
+      <span id="cfg-token-display">(loading...)</span>
+      <button class="btn-light" id="cfg-copy-btn">Copy</button>
+    </div>
+    <button class="btn-primary" id="cfg-generate-btn">Generate New Token</button>
+    <button class="btn-light" id="cfg-clear-btn">Clear All</button>
+  </div>
+
+  <div class="edit-toggle-row">
+    <input type="checkbox" id="cfg-edit-toggle">
+    <label for="cfg-edit-toggle">Use custom credentials instead of sandbox defaults</label>
+  </div>
+
+  <div id="cfg-credentials-fields">
+    <label>Environment
+      <select id="cfg-environment">
+        <option value="sandbox" selected>Sandbox</option>
+        <option value="production">Production</option>
+      </select>
+    </label>
+    <label>Merchant ID
+      <input type="text" id="cfg-merchant-id" placeholder="e.g. 69jzfyjt6ng6pyxq">
+    </label>
+    <label>Public Key
+      <input type="text" id="cfg-public-key" placeholder="Public key">
+    </label>
+    <label>Private Key
+      <input type="password" id="cfg-private-key" placeholder="Private key">
+    </label>
+  </div>
+
+  <!-- ================= MAIN SHELL ================= -->
+  <div class="demo-shell">
+
+    <!-- LEFT: Diagnostics -->
+    <div class="panel">
+      <h2>Diagnostics / Response Log</h2>
+      <div id="diagnostics-panel"></div>
+    </div>
+
+    <!-- RIGHT: Payment form -->
+    <div class="panel">
+      <div class="payment-method-tabs">
+        <a href="/demos/one-time/card/">Card</a>
+        <a href="/demos/one-time/paypal/">PayPal</a>
+        <a href="/demos/one-time/paylater/">Pay Later</a>
+        <a href="/demos/one-time/venmo/">Venmo</a>
+        <a href="/demos/one-time/google-pay/">Google Pay</a>
+        <a href="/demos/one-time/apple-pay/" class="active">Apple Pay</a>
+        <a href="/demos/one-time/ach/">ACH</a>
+      </div>
+
+      <h2>Order Details</h2>
+      <div class="field-row">
+        <div class="field">
+          <label for="order-amount">Amount (USD)</label>
+          <input type="text" id="order-amount" value="49.00">
+        </div>
+        <div class="field">
+          <label for="order-desc">Description</label>
+          <input type="text" id="order-desc" value="Demo order — Apple Pay">
+        </div>
+      </div>
+
+      <h2>Customer Details</h2>
+      <div class="field-row">
+        <div class="field">
+          <label for="cust-first-name">First Name</label>
+          <input type="text" id="cust-first-name" value="Jane">
+        </div>
+        <div class="field">
+          <label for="cust-last-name">Last Name</label>
+          <input type="text" id="cust-last-name" value="Doe">
+        </div>
+      </div>
+      <div class="field-row single">
+        <div class="field">
+          <label for="cust-email">Email</label>
+          <input type="email" id="cust-email" value="jane.doe@example.com">
+        </div>
+      </div>
+      <div class="field-row single">
+        <div class="field">
+          <label for="addr-street">Street Address</label>
+          <input type="text" id="addr-street" value="2211 N 1st St">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="addr-city">City</label>
+          <input type="text" id="addr-city" value="San Jose">
+        </div>
+        <div class="field">
+          <label for="addr-state">State</label>
+          <input type="text" id="addr-state" value="CA">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="addr-zip">ZIP / Postal Code</label>
+          <input type="text" id="addr-zip" value="95131">
+        </div>
+        <div class="field">
+          <label for="addr-country">Country Code</label>
+          <input type="text" id="addr-country" value="US">
+        </div>
+      </div>
+
+      <h2 style="margin-top: 20px;">Pay with Apple Pay</h2>
+      <p class="apay-note" id="apay-note">Waiting for client token...</p>
+      <div id="payment-method-mount">
+        <button id="apple-pay-btn" class="apple-pay-button" style="display:none;"></button>
+      </div>
+
+      <div class="result-banner" id="result-banner"></div>
+    </div>
+
+  </div>
+
+  <style>
+    .apay-note {
+      font-size: 12px;
+      color: var(--color-text-muted);
+      margin: 0 0 12px;
+    }
+    /* Apple's own HIG for the Apple Pay button — black pill with the
+       official mark, rendered via CSS -apple-pay-logo-type rather than an
+       image asset, same as Apple's own sample integrations. */
+    .apple-pay-button {
+      display: inline-block;
+      width: 100%;
+      max-width: 260px;
+      height: 44px;
+      border-radius: 8px;
+      -webkit-appearance: -apple-pay-button;
+      -apple-pay-button-type: pay;
+      -apple-pay-button-style: black;
+      border: none;
+      cursor: pointer;
+    }
+    /* Fallback for browsers that don't support the -apple-pay-button
+       appearance at all (i.e. every non-Safari browser without the iOS 18
+       SDK) — shown instead of a broken/invisible native button. */
+    .apple-pay-button.fallback {
+      -webkit-appearance: none;
+      background: #000;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+    }
+  </style>
+
+  <script src="/shared/diagnostics.js"></script>
+  <script src="/shared/config-panel.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
