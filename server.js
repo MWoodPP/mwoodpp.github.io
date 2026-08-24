@@ -488,29 +488,57 @@ app.get('/api/_source/server.js', (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 // ---------------------------------------------------------------------------
-// HTTPS instead of plain HTTP
+// HTTPS locally, plain HTTP in Codespaces (or anywhere else with a TLS-
+// terminating proxy in front)
 // ---------------------------------------------------------------------------
 // Apple Pay JS refuses to start a session from an insecure (http://) document
 // — this throws InvalidAccessError at runtime, not at load time, which is
 // why it can look like nothing is happening. A self-signed cert is enough
-// to satisfy `window.isSecureContext`; Safari will show a one-time warning
-// for the untrusted cert, but Apple Pay itself doesn't care that it's
-// self-signed, only that the connection is HTTPS.
+// to satisfy `window.isSecureContext` when running locally.
 //
-// The two cert files below are generated locally via:
-//   openssl req -x509 -newkey rsa:2048 -nodes \
-//     -keyout localhost-key.pem -out localhost-cert.pem \
-//     -days 365 -subj "/CN=localhost"
-// and should sit alongside this server.js file.
+// In GitHub Codespaces, though, the platform's own port-forwarding proxy
+// already terminates TLS at the edge with a REAL certificate — the
+// https://<name>-3000.app.github.dev URL a browser sees is genuinely secure
+// on its own, with no self-signed warning, even if this process itself
+// speaks plain HTTP inside the container. Layering our own self-signed
+// HTTPS on top would be redundant at best and can actively break the
+// forwarding proxy's expectations at worst (it expects to proxy to a plain
+// HTTP backend and add TLS itself, not relay another TLS handshake).
+//
+// So: if the local cert files are present (per the README's openssl
+// command), use them. If not — e.g. a fresh Codespace where nobody's
+// generated them — fall back to plain HTTP rather than crashing on a
+// missing-file read error.
+//
+// One real limitation this doesn't fix: Apple Pay's domain-registration
+// requirement (see the Apple Pay demo's own reference panel) is tied to a
+// SPECIFIC, fixed domain registered in Braintree's Control Panel. A
+// Codespace's forwarded URL is a random, ephemeral subdomain each time, so
+// Apple Pay specifically will still fail merchant validation there — every
+// other demo in this suite works fine over the Codespaces URL, but Apple
+// Pay still needs to be tested from a domain you've actually registered.
 // ---------------------------------------------------------------------------
 const https = require('https');
 const fs = require('fs');
 
-const httpsOptions = {
-  key: fs.readFileSync(path.join(__dirname, 'localhost-key.pem')),
-  cert: fs.readFileSync(path.join(__dirname, 'localhost-cert.pem')),
-};
+const KEY_PATH = path.join(__dirname, 'localhost-key.pem');
+const CERT_PATH = path.join(__dirname, 'localhost-cert.pem');
 
-https.createServer(httpsOptions, app).listen(PORT, () => {
-  console.log(`\nDemo suite running: https://localhost:${PORT}\n`);
-});
+if (fs.existsSync(KEY_PATH) && fs.existsSync(CERT_PATH)) {
+  const httpsOptions = {
+    key: fs.readFileSync(KEY_PATH),
+    cert: fs.readFileSync(CERT_PATH),
+  };
+
+  https.createServer(httpsOptions, app).listen(PORT, () => {
+    console.log(`\nDemo suite running: https://localhost:${PORT}\n`);
+  });
+} else {
+  console.log('\nNo local HTTPS cert files found — starting plain HTTP.');
+  console.log('(Expected if running in Codespaces; the platform\'s own proxy adds real HTTPS at the edge.)');
+  console.log('(If running locally and you need HTTPS for Apple Pay, see the README for the openssl command.)\n');
+
+  app.listen(PORT, () => {
+    console.log(`Demo suite running: http://localhost:${PORT}\n`);
+  });
+}
