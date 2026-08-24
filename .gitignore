@@ -1,0 +1,41 @@
+# =============================================================================
+# Node server (/server)
+# =============================================================================
+server/.env
+server/.env.*
+!server/.env.example
+server/node_modules/
+server/*.pem
+
+# =============================================================================
+# Android project (/android)
+# =============================================================================
+# Machine-specific — SDK path, never portable across machines
+android/local.properties
+
+# Build output & IDE caches — regenerated, not source
+android/.gradle/
+android/.idea/caches/
+android/.idea/libraries/
+android/.idea/modules.xml
+android/.idea/workspace.xml
+android/.idea/navEditor.xml
+android/.idea/assetWizardSettings.xml
+android/build/
+android/app/build/
+android/captures/
+android/.externalNativeBuild/
+android/.cxx/
+android/*.iml
+
+# Release signing — if/when this project adds a real keystore, it goes here,
+# never committed
+android/*.jks
+android/*.keystore
+android/keystore.properties
+
+# =============================================================================
+# OS / editor cruft
+# =============================================================================
+.DS_Store
+*.log

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generic "Card" button background used across all screens. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="?attr/colorControlHighlight"
+    android:radius="16dp">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/card_dark" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+</ripple>

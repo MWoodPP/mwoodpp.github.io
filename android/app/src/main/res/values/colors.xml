@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!--
+      Demo brand colors
+      NOTE: For any production/public app, follow PayPal/Venmo/Google Pay brand guidelines.
+    -->
+    <color name="paypal_blue">#003087</color>
+    <color name="paypal_blue_light">#0070E0</color>
+    <color name="venmo_blue">#008CFF</color>
+    <color name="card_dark">#1A1A1A</color>
+    <color name="googlepay_white">#FFFFFF</color>
+    <color name="googlepay_border">#DADCE0</color>
+
+    <color name="section_one_time">#2E7D32</color>
+    <color name="section_checkout_vault">#1565C0</color>
+    <color name="section_vault">#6A1B9A</color>
+
+    <color name="panel_bg">#F5F5F7</color>
+    <color name="surface_card">#FFFFFF</color>
+    <color name="text_secondary">#6B6B6F</color>
+    <color name="divider">#E7E7EA</color>
+    <color name="log_bg">#0F0F0F</color>
+    <color name="log_text">#B8FFB8</color>
+</resources>

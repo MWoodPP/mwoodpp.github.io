@@ -1,0 +1,33 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.WoodSBXBraintree" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Customize your light theme here. -->
+        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+    </style>
+
+    <style name="Theme.WoodSBXBraintree" parent="Base.Theme.WoodSBXBraintree" />
+
+    <!-- Reusable button styles so every screen looks consistent -->
+    <style name="Widget.App.PrimaryButton" parent="Widget.Material3.Button">
+        <item name="cornerRadius">12dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+
+    <style name="Widget.App.SecondaryButton" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="cornerRadius">12dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+
+    <!-- Reusable "elevated content card" wrapper, matching a single visual
+         language across the Picker and every individual screen. -->
+    <style name="Widget.App.ContentCard" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardCornerRadius">18dp</item>
+        <item name="cardElevation">2dp</item>
+        <item name="cardBackgroundColor">@color/surface_card</item>
+        <item name="contentPadding">18dp</item>
+    </style>
+</resources>

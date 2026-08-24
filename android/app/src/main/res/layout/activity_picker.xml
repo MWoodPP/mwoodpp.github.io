@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/panel_bg"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingTop="24dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Braintree Demo Suite"
+            android:textColor="@color/black"
+            android:textSize="26sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="20dp"
+            android:text="WoodSBXBraintree 3 — Sandbox"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
+
+        <!-- ============== GROUP 1: One Time Payment ============== -->
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.App.ContentCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="One Time Payment"
+                    android:textColor="@color/section_one_time"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="14dp"
+                    android:text="Single sale — no vaulting."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnOneTimeCard"
+                    style="@style/Widget.App.PrimaryButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/bg_card"
+                    android:text="Card"
+                    app:icon="@drawable/ic_card"
+                    app:iconGravity="start" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnOneTimePayPal"
+                    style="@style/Widget.App.PrimaryButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/bg_paypal"
+                    android:text="PayPal"
+                    app:icon="@drawable/ic_paypal"
+                    app:iconGravity="start"
+                    app:iconTint="@null" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnOneTimeVenmo"
+                    style="@style/Widget.App.PrimaryButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/bg_venmo"
+                    android:text="Venmo"
+                    app:icon="@drawable/ic_venmo"
+                    app:iconGravity="start"
+                    app:iconTint="@null" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnOneTimeGooglePay"
+                    style="@style/Widget.App.PrimaryButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:background="@drawable/bg_googlepay"
+                    android:text="Google Pay"
+                    android:textColor="@color/black"
+                    app:icon="@drawable/ic_googlepay"
+                    app:iconGravity="start"
+                    app:iconTint="@null" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ============== GROUP 2: Checkout with Vault ============== -->
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.App.ContentCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Checkout with Vault"
+                    android:textColor="@color/section_checkout_vault"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="14dp"
+                    android:text="Sale now, and save the payment method for later."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnVaultCheckoutCard"
+                    style="@style/Widget.App.PrimaryButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/bg_card"
+                    android:text="Card + Vault"
+                    app:icon="@drawable/ic_card"
+                    app:iconGravity="start" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnVaultCheckoutPayPal"
+                    style="@style/Widget.App.PrimaryButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:background="@drawable/bg_paypal"
+                    android:text="PayPal + Vault"
+                    app:icon="@drawable/ic_paypal"
+                    app:iconGravity="start"
+                    app:iconTint="@null" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ============== GROUP 3: Vault ============== -->
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.App.ContentCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Vault"
+                    android:textColor="@color/section_vault"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="14dp"
+                    android:text="Store now (no charge), or charge something already stored."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnVaultStoreCard"
+                    style="@style/Widget.App.PrimaryButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/bg_card"
+                    android:text="Store: Card"
+                    app:icon="@drawable/ic_card"
+                    app:iconGravity="start" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnVaultStorePayPal"
+                    style="@style/Widget.App.PrimaryButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/bg_paypal"
+                    android:text="Store: PayPal"
+                    app:icon="@drawable/ic_paypal"
+                    app:iconGravity="start"
+                    app:iconTint="@null" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnVaultStoreVenmo"
+                    style="@style/Widget.App.PrimaryButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/bg_venmo"
+                    android:text="Store: Venmo"
+                    app:icon="@drawable/ic_venmo"
+                    app:iconGravity="start"
+                    app:iconTint="@null" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnVaultStoreGooglePay"
+                    style="@style/Widget.App.PrimaryButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:layout_marginBottom="14dp"
+                    android:background="@drawable/bg_googlepay"
+                    android:text="Store: Google Pay"
+                    android:textColor="@color/black"
+                    app:icon="@drawable/ic_googlepay"
+                    app:iconGravity="start"
+                    app:iconTint="@null" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginBottom="14dp"
+                    android:background="@color/divider" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnVaultCharge"
+                    style="@style/Widget.App.SecondaryButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:text="Charge Vaulted" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+</ScrollView>

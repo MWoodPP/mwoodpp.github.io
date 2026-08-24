@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Venmo button background (demo).
+-->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="?attr/colorControlHighlight"
+    android:radius="16dp">
+
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/venmo_blue" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+
+</ripple>
