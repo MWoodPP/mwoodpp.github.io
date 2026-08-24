@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Card Demo — Braintree</title>
+<link rel="stylesheet" href="/shared/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-highlight/prism-line-highlight.min.css">
+<script src="https://js.braintreegateway.com/web/3.140.0/js/client.min.js"></script>
+<script src="https://js.braintreegateway.com/web/3.140.0/js/hosted-fields.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-highlight/prism-line-highlight.min.js"></script>
+</head>
+<body>
+
+  <!-- ================= TOP BAR ================= -->
+  <div class="top-bar">
+    <div class="brand">
+      <a href="/" style="color:inherit;text-decoration:none;">🧾 Braintree Demo Suite</a>
+      <span class="badge">Sandbox</span>
+      <span class="badge group-badge">One Time Payment</span>
+    </div>
+    <div class="token-row">
+      <span id="cfg-token-display">(loading...)</span>
+      <button class="btn-light" id="cfg-copy-btn">Copy</button>
+    </div>
+    <button class="btn-primary" id="cfg-generate-btn">Generate New Token</button>
+    <button class="btn-light" id="cfg-clear-btn">Clear All</button>
+  </div>
+
+  <div class="edit-toggle-row">
+    <input type="checkbox" id="cfg-edit-toggle">
+    <label for="cfg-edit-toggle">Use custom credentials instead of sandbox defaults</label>
+  </div>
+
+  <div id="cfg-credentials-fields">
+    <label>Environment
+      <select id="cfg-environment">
+        <option value="sandbox" selected>Sandbox</option>
+        <option value="production">Production</option>
+      </select>
+    </label>
+    <label>Merchant ID
+      <input type="text" id="cfg-merchant-id" placeholder="e.g. 69jzfyjt6ng6pyxq">
+    </label>
+    <label>Public Key
+      <input type="text" id="cfg-public-key" placeholder="Public key">
+    </label>
+    <label>Private Key
+      <input type="password" id="cfg-private-key" placeholder="Private key">
+    </label>
+  </div>
+
+  <!-- ================= MAIN SHELL ================= -->
+  <div class="demo-shell">
+
+    <!-- FAR LEFT: Live Code Walkthrough (Card-only for now — not shared) -->
+    <div class="panel code-panel">
+      <div class="code-panel-header">
+        <h2 style="margin: 0;">Live Code</h2>
+        <div class="code-tabs">
+          <button class="code-tab active" id="code-tab-client" type="button">app.js</button>
+          <button class="code-tab" id="code-tab-server" type="button">server.js</button>
+        </div>
+      </div>
+      <p class="code-panel-filename" id="code-panel-filename">app.js — client</p>
+      <div id="code-panel-content"></div>
+    </div>
+
+    <!-- LEFT: Diagnostics -->
+    <div class="panel">
+      <h2>Diagnostics / Response Log</h2>
+      <div id="diagnostics-panel"></div>
+    </div>
+
+    <!-- RIGHT: Payment form -->
+    <div class="panel">
+      <div class="payment-method-tabs">
+        <a href="/demos/one-time/card/" class="active">Card</a>
+        <a href="/demos/one-time/paypal/">PayPal</a>
+        <a href="/demos/one-time/paylater/">Pay Later</a>
+        <a href="/demos/one-time/venmo/">Venmo</a>
+        <a href="/demos/one-time/google-pay/">Google Pay</a>
+        <a href="/demos/one-time/apple-pay/">Apple Pay</a>
+        <a href="/demos/one-time/ach/">ACH</a>
+      </div>
+
+      <h2>Order Details</h2>
+      <div class="field-row">
+        <div class="field">
+          <label for="order-amount">Amount (USD)</label>
+          <input type="text" id="order-amount" value="49.00">
+        </div>
+        <div class="field">
+          <label for="order-desc">Description</label>
+          <input type="text" id="order-desc" value="Demo order — Card">
+        </div>
+      </div>
+
+      <h2>Customer Details</h2>
+      <div class="field-row">
+        <div class="field">
+          <label for="cust-first-name">First Name</label>
+          <input type="text" id="cust-first-name" value="Jane">
+        </div>
+        <div class="field">
+          <label for="cust-last-name">Last Name</label>
+          <input type="text" id="cust-last-name" value="Doe">
+        </div>
+      </div>
+      <div class="field-row single">
+        <div class="field">
+          <label for="cust-email">Email</label>
+          <input type="email" id="cust-email" value="jane.doe@example.com">
+        </div>
+      </div>
+      <div class="field-row single">
+        <div class="field">
+          <label for="addr-street">Street Address</label>
+          <input type="text" id="addr-street" value="2211 N 1st St">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="addr-city">City</label>
+          <input type="text" id="addr-city" value="San Jose">
+        </div>
+        <div class="field">
+          <label for="addr-state">State</label>
+          <input type="text" id="addr-state" value="CA">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="addr-zip">ZIP / Postal Code</label>
+          <input type="text" id="addr-zip" value="95131">
+        </div>
+        <div class="field">
+          <label for="addr-country">Country Code</label>
+          <input type="text" id="addr-country" value="US">
+        </div>
+      </div>
+
+      <div id="payment-method-mount">
+        <div class="field-row single">
+          <div class="field">
+            <label>Card Number</label>
+            <div id="hf-number" class="hosted-field"></div>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Expiration Date</label>
+            <div id="hf-expiration" class="hosted-field"></div>
+          </div>
+          <div class="field">
+            <label>CVV</label>
+            <div id="hf-cvv" class="hosted-field"></div>
+          </div>
+        </div>
+      </div>
+
+      <button class="submit-btn" id="submit-btn" disabled>Submit Payment</button>
+
+      <div class="result-banner" id="result-banner"></div>
+    </div>
+
+    <!-- RIGHT OF RIGHT: Test Values Reference (Card-specific — not shared) -->
+    <div class="panel ref-panel">
+      <h2>Sandbox Test Values</h2>
+      <p class="ref-intro">
+        <strong>Card Number / Expiration / CVV are Hosted Fields</strong> — Braintree
+        blocks programmatic fill into them by design, so those rows
+        <strong>copy to clipboard</strong> instead. Amount / ZIP / Street are plain
+        inputs, so those rows <strong>click-to-fill</strong> directly.
+      </p>
+
+      <div class="ref-drilldown" id="ref-drilldown">
+
+        <button class="ref-cat" data-target="ref-valid-cards">
+          <span class="ref-cat-dot ref-dot-success"></span>
+          Valid Test Cards
+          <span class="ref-chevron">›</span>
+        </button>
+        <div class="ref-cat-body" id="ref-valid-cards">
+          <button class="ref-row" data-copy="4111111111111111">
+            <code>4111 1111 1111 1111</code>
+            <span class="ref-row-label">Visa</span>
+          </button>
+          <button class="ref-row" data-copy="5555555555554444">
+            <code>5555 5555 5555 4444</code>
+            <span class="ref-row-label">Mastercard</span>
+          </button>
+          <button class="ref-row" data-copy="378282246310005">
+            <code>3782 822463 10005</code>
+            <span class="ref-row-label">American Express</span>
+          </button>
+          <button class="ref-row" data-copy="6011000991300009">
+            <code>6011 0009 9130 0009</code>
+            <span class="ref-row-label">Discover</span>
+          </button>
+          <button class="ref-row" data-copy="3530111333300000">
+            <code>3530 1113 3330 0000</code>
+            <span class="ref-row-label">JCB</span>
+          </button>
+          <button class="ref-row" data-copy="6304000000000000">
+            <code>6304 0000 0000 0000</code>
+            <span class="ref-row-label">Maestro</span>
+          </button>
+          <div class="ref-note">Any expiration in the future + any 3-digit CVV (4-digit for Amex) works with these.</div>
+        </div>
+
+        <button class="ref-cat" data-target="ref-verify-declines">
+          <span class="ref-cat-dot ref-dot-error"></span>
+          Verification Declines
+          <span class="ref-chevron">›</span>
+        </button>
+        <div class="ref-cat-body" id="ref-verify-declines">
+          <div class="ref-note">Verification ≠ transaction — these fail card verification (Vault/recurring), not a one-time sale.</div>
+          <button class="ref-row" data-copy="4000111111111115">
+            <code>4000 1111 1111 1115</code>
+            <span class="ref-row-label">Visa · processor declined</span>
+          </button>
+          <button class="ref-row" data-copy="5105105105105100">
+            <code>5105 1051 0510 5100</code>
+            <span class="ref-row-label">Mastercard · processor declined</span>
+          </button>
+          <button class="ref-row" data-copy="378734493671000">
+            <code>3787 344936 71000</code>
+            <span class="ref-row-label">Amex · processor declined</span>
+          </button>
+          <button class="ref-row" data-copy="3566002020360505">
+            <code>3566 0020 2036 0505</code>
+            <span class="ref-row-label">JCB · failed (3000)</span>
+          </button>
+        </div>
+
+        <button class="ref-cat" data-target="ref-amounts">
+          <span class="ref-cat-dot ref-dot-pending"></span>
+          Transaction Amounts
+          <span class="ref-chevron">›</span>
+        </button>
+        <div class="ref-cat-body" id="ref-amounts">
+          <div class="ref-note">These click-to-fill the Amount field — transaction success is amount-driven, not card-driven.</div>
+          <button class="ref-row" data-amount="49.00">
+            <code>$49.00</code>
+            <span class="ref-row-label">Authorized · Settled</span>
+          </button>
+          <button class="ref-row" data-amount="2046.00">
+            <code>$2,046.00</code>
+            <span class="ref-row-label">Processor Declined (2046)</span>
+          </button>
+          <button class="ref-row" data-amount="3000.00">
+            <code>$3,000.00</code>
+            <span class="ref-row-label">Failed (3000)</span>
+          </button>
+          <button class="ref-row" data-amount="4001.00">
+            <code>$4,001.00</code>
+            <span class="ref-row-label">Auth OK · Settlement Declined</span>
+          </button>
+          <button class="ref-row" data-amount="5001.00">
+            <code>$5,001.00</code>
+            <span class="ref-row-label">Gateway Rejected · Incomplete</span>
+          </button>
+        </div>
+
+        <button class="ref-cat" data-target="ref-avs">
+          <span class="ref-cat-dot ref-dot-pending"></span>
+          AVS / CVV Responses
+          <span class="ref-chevron">›</span>
+        </button>
+        <div class="ref-cat-body" id="ref-avs">
+          <div class="ref-note">Only triggers a rejection if AVS/CVV rules are enabled on the merchant account. ZIP click-fills; CVV copies (Hosted Field).</div>
+          <button class="ref-row" data-zip="20000">
+            <code>ZIP 20000</code>
+            <span class="ref-row-label">AVS · does not match</span>
+          </button>
+          <button class="ref-row" data-street="200 N Main St">
+            <code>Street # 200</code>
+            <span class="ref-row-label">AVS street · does not match</span>
+          </button>
+          <button class="ref-row" data-copy="200">
+            <code>CVV 200</code>
+            <span class="ref-row-label">Does not match</span>
+          </button>
+          <button class="ref-row" data-copy="201">
+            <code>CVV 201</code>
+            <span class="ref-row-label">Not verified</span>
+          </button>
+        </div>
+
+        <button class="ref-cat" data-target="ref-fraud">
+          <span class="ref-cat-dot ref-dot-error"></span>
+          Fraud / Gateway Rejections
+          <span class="ref-chevron">›</span>
+        </button>
+        <div class="ref-cat-body" id="ref-fraud">
+          <button class="ref-row" data-copy="4111140000000002">
+            <code>4111 1400 0000 0002</code>
+            <span class="ref-row-label">Fraud review (Advanced FPA)</span>
+          </button>
+          <button class="ref-row" data-copy="4000111111111511">
+            <code>4000 1111 1111 1511</code>
+            <span class="ref-row-label">Gateway rejected · fraud</span>
+          </button>
+          <button class="ref-row" data-copy="4111130000000003">
+            <code>4111 1300 0000 0003</code>
+            <span class="ref-row-label">Gateway rejected · risk threshold</span>
+          </button>
+        </div>
+
+        <button class="ref-cat" data-target="ref-dispute">
+          <span class="ref-cat-dot ref-dot-pending"></span>
+          Instant Dispute
+          <span class="ref-chevron">›</span>
+        </button>
+        <div class="ref-cat-body" id="ref-dispute">
+          <div class="ref-note">Any amount — creates a settled sale that's instantly disputed (triggers webhook + email if configured).</div>
+          <button class="ref-row" data-copy="4023898493988028">
+            <code>4023 8984 9398 8028</code>
+            <span class="ref-row-label">Visa · auto-dispute</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <style>
+    .hosted-field {
+      height: 40px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 9px 10px;
+      background: white;
+    }
+    .hosted-field.braintree-hosted-fields-focused {
+      border-color: var(--color-accent);
+    }
+
+    /* ===== Card-only: code panel (left) + reference panel (right) ===== */
+    body.card-page .demo-shell {
+      grid-template-columns: 620px 380px 1fr 300px;
+      max-width: 2000px;
+    }
+    @media (max-width: 1900px) {
+      body.card-page .demo-shell { grid-template-columns: 480px 380px 1fr 300px; max-width: 1860px; }
+    }
+    @media (max-width: 1680px) {
+      body.card-page .demo-shell { grid-template-columns: 380px 1fr 300px; max-width: 1400px; }
+      .code-panel { display: none; }
+    }
+    @media (max-width: 1240px) {
+      body.card-page .demo-shell { grid-template-columns: 380px 1fr; }
+      .ref-panel { display: none; }
+    }
+    @media (max-width: 900px) {
+      body.card-page .demo-shell { grid-template-columns: 1fr; }
+    }
+
+    .code-panel {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      height: 620px;
+    }
+    .code-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      flex-shrink: 0;
+    }
+    .code-tabs {
+      display: flex;
+      gap: 4px;
+    }
+    .code-tab {
+      background: #f0f1f3;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      cursor: pointer;
+    }
+    .code-tab:hover { background: #e6e7ea; }
+    .code-tab.active {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+    .code-panel-filename {
+      font-size: 11px;
+      font-family: "SF Mono", Menlo, monospace;
+      color: var(--color-text-muted);
+      margin: 0 0 10px;
+      flex-shrink: 0;
+    }
+    #code-panel-content {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      border-radius: 8px;
+      background: #1a1a2e;
+    }
+    #code-panel-content pre {
+      margin: 0 !important;
+      min-height: 100%;
+      font-size: 11.5px !important;
+      border-radius: 8px !important;
+      color: #ccc; /* fallback if Prism's theme CSS fails to load (e.g. CDN blocked) */
+    }
+    #code-panel-content code {
+      color: inherit; /* same fallback purpose — avoids default black-on-navy */
+    }
+    #code-panel-content .line-highlight {
+      background: rgba(0, 112, 186, 0.35) !important;
+      background-image: none !important;
+    }
+
+    .ref-panel { padding: 16px; }
+    .ref-intro {
+      font-size: 11.5px;
+      line-height: 1.5;
+      color: var(--color-text-muted);
+      margin: -6px 0 14px;
+    }
+    .ref-drilldown { display: flex; flex-direction: column; gap: 4px; }
+
+    .ref-cat {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      text-align: left;
+      background: #fafafa;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 9px 10px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--color-text);
+      cursor: pointer;
+    }
+    .ref-cat:hover { background: #f0f1f3; }
+    .ref-cat .ref-chevron {
+      margin-left: auto;
+      color: var(--color-text-muted);
+      transition: transform 0.15s ease;
+    }
+    .ref-cat.open .ref-chevron { transform: rotate(90deg); }
+
+    .ref-cat-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .ref-dot-success { background: var(--color-success); }
+    .ref-dot-error { background: var(--color-error); }
+    .ref-dot-pending { background: var(--color-pending); }
+
+    .ref-cat-body {
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      padding: 4px 2px 10px 4px;
+    }
+    .ref-cat-body.open { display: flex; }
+
+    .ref-note {
+      font-size: 11px;
+      color: var(--color-text-muted);
+      padding: 2px 4px 4px;
+    }
+
+    .ref-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      width: 100%;
+      text-align: left;
+      background: white;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 7px 9px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .ref-row:hover {
+      border-color: var(--color-accent);
+      background: #f4f9ff;
+    }
+    .ref-row code {
+      font-family: "SF Mono", Menlo, monospace;
+      font-weight: 700;
+      font-size: 11.5px;
+      color: var(--color-primary);
+      flex-shrink: 0;
+    }
+    .ref-row-label {
+      color: var(--color-text-muted);
+      font-size: 11.5px;
+    }
+    .ref-row-filled {
+      border-color: var(--color-success) !important;
+      background: var(--color-success-bg) !important;
+    }
+  </style>
+
+  <script>
+    document.body.classList.add('card-page');
+
+    document.querySelectorAll('.ref-cat').forEach((catBtn) => {
+      catBtn.addEventListener('click', () => {
+        const body = document.getElementById(catBtn.dataset.target);
+        const nowOpen = !body.classList.contains('open');
+        body.classList.toggle('open', nowOpen);
+        catBtn.classList.toggle('open', nowOpen);
+      });
+    });
+
+    function flash(el, label) {
+      const labelEl = el.querySelector('.ref-row-label');
+      const original = labelEl.textContent;
+      el.classList.add('ref-row-filled');
+      labelEl.textContent = label;
+      setTimeout(() => {
+        el.classList.remove('ref-row-filled');
+        labelEl.textContent = original;
+      }, 900);
+    }
+
+    document.querySelectorAll('.ref-row').forEach((rowBtn) => {
+      rowBtn.addEventListener('click', () => {
+        const { copy, amount, zip, street } = rowBtn.dataset;
+
+        if (amount) {
+          document.getElementById('order-amount').value = amount;
+          flash(rowBtn, 'Filled ✓');
+          return;
+        }
+        if (zip) {
+          document.getElementById('addr-zip').value = zip;
+          flash(rowBtn, 'Filled ✓');
+          return;
+        }
+        if (street) {
+          document.getElementById('addr-street').value = street;
+          flash(rowBtn, 'Filled ✓');
+          return;
+        }
+        if (copy) {
+          navigator.clipboard.writeText(copy).then(() => {
+            flash(rowBtn, 'Copied ✓');
+          });
+        }
+      });
+    });
+  </script>
+
+  <script src="/shared/diagnostics.js"></script>
+  <script src="/shared/config-panel.js"></script>
+  <script src="/shared/code-panel.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

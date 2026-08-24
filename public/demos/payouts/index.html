@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Payouts — Detached Credit — Braintree</title>
+<link rel="stylesheet" href="/shared/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-highlight/prism-line-highlight.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-highlight/prism-line-highlight.min.js"></script>
+<script src="https://js.braintreegateway.com/web/3.140.0/js/client.min.js"></script>
+</head>
+<body>
+
+  <!-- ================= TOP BAR ================= -->
+  <div class="top-bar">
+    <div class="brand">
+      <a href="/" style="color:inherit;text-decoration:none;">🧾 Braintree Demo Suite</a>
+      <span class="badge">Sandbox</span>
+      <span class="badge group-badge">Payouts</span>
+    </div>
+    <div class="token-row">
+      <span id="cfg-token-display">(loading...)</span>
+      <button class="btn-light" id="cfg-copy-btn">Copy</button>
+    </div>
+    <button class="btn-primary" id="cfg-generate-btn">Generate New Token</button>
+    <button class="btn-light" id="cfg-clear-btn">Clear All</button>
+  </div>
+
+  <div class="edit-toggle-row">
+    <input type="checkbox" id="cfg-edit-toggle">
+    <label for="cfg-edit-toggle">Use custom credentials instead of sandbox defaults</label>
+  </div>
+
+  <div id="cfg-credentials-fields">
+    <label>Environment
+      <select id="cfg-environment">
+        <option value="sandbox" selected>Sandbox</option>
+        <option value="production">Production</option>
+      </select>
+    </label>
+    <label>Merchant ID
+      <input type="text" id="cfg-merchant-id" placeholder="e.g. 69jzfyjt6ng6pyxq">
+    </label>
+    <label>Public Key
+      <input type="text" id="cfg-public-key" placeholder="Public key">
+    </label>
+    <label>Private Key
+      <input type="password" id="cfg-private-key" placeholder="Private key">
+    </label>
+  </div>
+
+  <!-- ================= MAIN SHELL ================= -->
+  <div class="demo-shell">
+
+    <!-- FAR LEFT: Live Code Walkthrough (shared component) -->
+    <div class="panel code-panel">
+      <div class="code-panel-header">
+        <h2 style="margin: 0;">Live Code</h2>
+        <div class="code-tabs">
+          <button class="code-tab active" id="code-tab-client" type="button">app.js</button>
+          <button class="code-tab" id="code-tab-server" type="button">server.js</button>
+        </div>
+      </div>
+      <p class="code-panel-filename" id="code-panel-filename">app.js — client</p>
+      <div id="code-panel-content"></div>
+    </div>
+
+
+    <!-- LEFT: Diagnostics -->
+    <div class="panel">
+      <h2>Diagnostics / Response Log</h2>
+      <div id="diagnostics-panel"></div>
+    </div>
+
+    <!-- RIGHT: Form -->
+    <div class="panel">
+      <div class="payment-method-tabs">
+        <a href="/demos/payouts/" class="active">Send Payout</a>
+      </div>
+
+      <p class="warn-hint">
+        <strong>⚠ This moves money OUT, with no prior sale to reference.</strong>
+        Requires <strong>"Credits Enabled"</strong> on this merchant account
+        (internal gateway toggle, not self-service) and a role with
+        <strong>"Create Credits without a Previous Transaction"</strong>
+        permission. Per Braintree's own guidance, this is a reviewed,
+        narrow-use feature — leave it enabled only as long as you actually
+        need it. See the reference panel for what a rejection looks like if
+        either isn't set.
+      </p>
+
+      <h2>Recipient</h2>
+      <p class="hint" style="margin-top: -6px;">
+        Pulled from <code>/api/vault/customers</code> — anything you've
+        vaulted this session via a Store: Card / PayPal / Venmo / ACH page.
+        No new tokenization happens on this page at all.
+      </p>
+      <div class="field-row single">
+        <div class="field">
+          <label for="recipient-select">Vaulted Payment Method</label>
+          <select id="recipient-select" disabled>
+            <option value="">(loading...)</option>
+          </select>
+        </div>
+      </div>
+      <p class="hint" id="recipients-note" style="margin-top: -6px;">Loading...</p>
+      <button class="btn-light" id="refresh-recipients-btn" type="button">Refresh List</button>
+
+      <h2 style="margin-top: 20px;">Payout Amount</h2>
+      <div class="field-row single">
+        <div class="field">
+          <label for="payout-amount">Amount (USD)</label>
+          <input type="text" id="payout-amount" value="20.00">
+        </div>
+      </div>
+
+      <button class="submit-btn" id="submit-btn" style="margin-top: 16px;">Send Payout</button>
+
+      <div class="result-banner" id="result-banner"></div>
+    </div>
+
+    <!-- RIGHT OF RIGHT: Enablement Reference (not shared) -->
+    <div class="panel ref-panel">
+      <h2>Enablement Reference</h2>
+      <p class="ref-intro">
+        There's no test-card matrix for this one — the gate is account
+        configuration, not input data. This panel documents what's required
+        and what failure looks like instead.
+      </p>
+
+      <div class="ref-drilldown" id="ref-drilldown">
+
+        <button class="ref-cat" data-target="ref-requirements">
+          <span class="ref-cat-dot ref-dot-pending"></span>
+          What Has To Be True First
+          <span class="ref-chevron">›</span>
+        </button>
+        <div class="ref-cat-body" id="ref-requirements">
+          <div class="ref-note">
+            <strong>1. Credits Enabled</strong> — checked on this merchant
+            account in the internal gateway admin tool (Options section).
+            Not a Control Panel self-service toggle.
+          </div>
+          <div class="ref-note">
+            <strong>2. Role permission</strong> — Settings → Team → Manage
+            Roles → the role issuing the credit needs "Create Credits
+            without a Previous Transaction" checked, under Transactions.
+          </div>
+          <div class="ref-note">
+            <strong>3. Processor support</strong> — some processors reject
+            credits outright regardless of the above (PayPal always does,
+            with error 91546). Confirm your processor allows it.
+          </div>
+        </div>
+
+        <button class="ref-cat" data-target="ref-rejection">
+          <span class="ref-cat-dot ref-dot-error"></span>
+          What Rejection Looks Like
+          <span class="ref-chevron">›</span>
+        </button>
+        <div class="ref-cat-body" id="ref-rejection">
+          <div class="ref-note">
+            If Credits Enabled isn't set, expect a gateway-level rejection —
+            check the diagnostics panel's raw response for the specific
+            validation error rather than a generic "declined."
+          </div>
+          <div class="ref-note">
+            <strong>Confirmed by testing all four types:</strong> Card is
+            the <em>only</em> payment method that supports detached credit.
+            PayPal, Venmo, and ACH (US Bank Account) all reject identically
+            with <code>91546 — Credits are not supported by this
+            processor</code>. Detached credit is fundamentally a
+            card-network (Visa/Mastercard reversal rules) mechanism —
+            PayPal/Venmo route through PayPal's own rails instead of card
+            networks, and ACH's NACHA rails have no equivalent "blind
+            credit" concept either. If you need to send money to a
+            customer's bank account or PayPal/Venmo balance outside a prior
+            sale, this API isn't the path — that would need a different
+            product entirely (e.g. PayPal Payouts, a separate API).
+          </div>
+        </div>
+
+        <button class="ref-cat" data-target="ref-why-narrow">
+          <span class="ref-cat-dot ref-dot-pending"></span>
+          Why This Is Locked Down
+          <span class="ref-chevron">›</span>
+        </button>
+        <div class="ref-cat-body" id="ref-why-narrow">
+          <div class="ref-note">
+            Card network rules generally prohibit sending funds to a card
+            with no corresponding sale. Braintree enables this only for
+            reviewed use cases (processor migrations, gaming/RMG payouts
+            under compliance agreements) — and recommends leaving it
+            enabled only for the shortest window actually needed, since a
+            compromised account with credits enabled can move money to any
+            vaulted method with no purchase to point back to.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <style>
+    .warn-hint {
+      font-size: 13px;
+      color: #7a1f1f;
+      background: #fdecea;
+      border: 1px solid #f3c6c1;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin: 0 0 18px;
+    }
+    .hint {
+      font-size: 13px;
+      color: var(--color-text-muted);
+      background: #fef6e7;
+      border: 1px solid #f0dfb8;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin: 0 0 18px;
+    }
+    .hint code {
+      background: rgba(0,0,0,0.06);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    #recipient-select {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--color-border);
+      font-size: 13px;
+      background: white;
+    }
+
+    /* ===== Payouts: third reference column ===== */
+    body.payouts-page .demo-shell {
+      grid-template-columns: 380px 1fr 300px;
+    }
+    @media (max-width: 1240px) {
+      body.payouts-page .demo-shell { grid-template-columns: 380px 1fr; }
+      .ref-panel { display: none; }
+    }
+    @media (max-width: 900px) {
+      body.payouts-page .demo-shell { grid-template-columns: 1fr; }
+    }
+
+    .ref-panel { padding: 16px; }
+    .ref-intro {
+      font-size: 11.5px;
+      line-height: 1.5;
+      color: var(--color-text-muted);
+      margin: -6px 0 14px;
+    }
+    .ref-drilldown { display: flex; flex-direction: column; gap: 4px; }
+
+    .ref-cat {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      text-align: left;
+      background: #fafafa;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 9px 10px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--color-text);
+      cursor: pointer;
+    }
+    .ref-cat:hover { background: #f0f1f3; }
+    .ref-cat .ref-chevron {
+      margin-left: auto;
+      color: var(--color-text-muted);
+      transition: transform 0.15s ease;
+    }
+    .ref-cat.open .ref-chevron { transform: rotate(90deg); }
+
+    .ref-cat-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .ref-dot-success { background: var(--color-success); }
+    .ref-dot-error { background: var(--color-error); }
+    .ref-dot-pending { background: var(--color-pending); }
+
+    .ref-cat-body {
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      padding: 6px 4px 12px 4px;
+    }
+    .ref-cat-body.open { display: flex; }
+
+    .ref-note {
+      font-size: 11.5px;
+      line-height: 1.5;
+      color: var(--color-text-muted);
+      background: white;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 8px 9px;
+    }
+    .ref-note code {
+      background: rgba(0,0,0,0.06);
+      padding: 1px 4px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+  
+    /* ===== Code Panel layout (shared pattern across pages) ===== */
+    body.payouts-page .demo-shell {
+      grid-template-columns: 560px 380px 1fr 300px;
+      max-width: 1940px;
+    }
+    @media (max-width: 1840px) {
+      body.payouts-page .demo-shell { grid-template-columns: 440px 380px 1fr 300px; max-width: 1820px; }
+    }
+    @media (max-width: 1680px) {
+      body.payouts-page .demo-shell { grid-template-columns: 380px 1fr 300px; max-width: 1400px; }
+      .code-panel { display: none; }
+    }
+    @media (max-width: 1240px) {
+      body.payouts-page .demo-shell { grid-template-columns: 380px 1fr; }
+      .ref-panel { display: none; }
+    }
+    @media (max-width: 900px) {
+      body.payouts-page .demo-shell { grid-template-columns: 1fr; }
+    }
+
+    .code-panel {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      height: 620px;
+    }
+    .code-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      flex-shrink: 0;
+    }
+    .code-tabs { display: flex; gap: 4px; }
+    .code-tab {
+      background: #f0f1f3;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      cursor: pointer;
+    }
+    .code-tab:hover { background: #e6e7ea; }
+    .code-tab.active {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+    .code-panel-filename {
+      font-size: 11px;
+      font-family: "SF Mono", Menlo, monospace;
+      color: var(--color-text-muted);
+      margin: 0 0 10px;
+      flex-shrink: 0;
+    }
+    #code-panel-content {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      border-radius: 8px;
+      background: #1a1a2e;
+    }
+    #code-panel-content pre {
+      margin: 0 !important;
+      min-height: 100%;
+      font-size: 11.5px !important;
+      border-radius: 8px !important;
+      color: #ccc;
+    }
+    #code-panel-content code { color: inherit; }
+    #code-panel-content .line-highlight {
+      background: rgba(0, 112, 186, 0.35) !important;
+      background-image: none !important;
+    }
+
+  </style>
+
+  <script>
+    document.body.classList.add('payouts-page');
+
+    document.querySelectorAll('.ref-cat').forEach((catBtn) => {
+      catBtn.addEventListener('click', () => {
+        const body = document.getElementById(catBtn.dataset.target);
+        const nowOpen = !body.classList.contains('open');
+        body.classList.toggle('open', nowOpen);
+        catBtn.classList.toggle('open', nowOpen);
+      });
+    });
+  </script>
+
+  <script src="/shared/diagnostics.js"></script>
+  <script src="/shared/config-panel.js"></script>
+  <script src="/shared/code-panel.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

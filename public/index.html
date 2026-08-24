@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Braintree Super Payments Demo</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f5f6f8;
+    margin: 0;
+    padding: 60px 24px;
+    color: #1a1a2e;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 28px; margin-bottom: 4px; }
+  p.sub { color: #6b7280; margin-top: 0; margin-bottom: 40px; }
+
+  .group-section { margin-bottom: 44px; }
+  .group-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #003087;
+    margin-bottom: 4px;
+  }
+  .group-desc {
+    font-size: 13px;
+    color: #6b7280;
+    margin: 0 0 16px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    display: block;
+    background: white;
+    border: 1px solid #e1e4e8;
+    border-radius: 12px;
+    padding: 24px;
+    text-decoration: none;
+    color: inherit;
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+  }
+  .card:hover {
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+  }
+  .card .icon { margin-bottom: 12px; }
+  .icon-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 17px;
+    letter-spacing: -0.02em;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .icon-badge.wide { width: auto; min-width: 40px; padding: 0 10px; font-size: 13px; letter-spacing: 0; }
+  .badge-card { background: #1a1a2e; }
+  .badge-card .netmarks { position: absolute; bottom: 5px; display: flex; gap: 2px; }
+  .badge-card .netmarks span { width: 8px; height: 8px; border-radius: 50%; }
+  .badge-card .netmarks .visa-dot { background: #1a1f71; }
+  .badge-card .netmarks .mc-dot-1 { background: #eb001b; opacity: 0.9; }
+  .badge-card .netmarks .mc-dot-2 { background: #f79e1b; opacity: 0.9; margin-left: -4px; }
+  .badge-card svg { width: 20px; height: 14px; }
+  .badge-paypal { background: #ffc439; color: #003087; }
+  .badge-paypal .p2 { color: #0070ba; margin-left: -3px; }
+  .badge-paylater-mono { background: #fff; border: 1px solid #d6d9dc; }
+  .badge-paylater-mono .pl-p { color: #0070ba; font-size: 20px; font-weight: 800; }
+  .badge-paylater-mono .pl-text { color: #1a1a2e; font-size: 13px; font-weight: 700; }
+  .badge-venmo { background: #008cff; color: #fff; }
+  .badge-googlepay { background: #ffffff; border: 1px solid #dadce0; color: #5f6368; }
+  .badge-googlepay .g-blue { color: #4285f4; }
+  .badge-applepay { background: #000; color: #fff; font-size: 13px; }
+  .badge-ach { background: #2e7d32; color: #fff; }
+  .badge-3ds-lock {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #b45309;
+    border: 2px solid #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .badge-3ds-lock svg { width: 9px; height: 9px; }
+  .badge-clock {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #6b7280;
+    border: 2px solid #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .badge-clock svg { width: 10px; height: 10px; }
+  .badge-vault {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #2e7d32;
+    border: 2px solid #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .badge-vault svg { width: 9px; height: 9px; }
+  .badge-generic { background: #eef1f4; color: #4b5563; font-size: 18px; }
+  .card h3 { margin: 0 0 6px; font-size: 16px; }
+  .card p { margin: 0; font-size: 13px; color: #6b7280; }
+  .card.disabled { opacity: 0.45; pointer-events: none; }
+  .card.coming-soon { opacity: 0.6; }
+  .card.coming-soon h3::after {
+    content: " (soon)";
+    font-size: 11px;
+    font-weight: 400;
+    color: #9aa0a6;
+  }
+
+  .footer-note { margin-top: 8px; font-size: 12px; color: #9aa0a6; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Braintree Super Payments Demo</h1>
+    <p class="sub">Pick a flow to see the full integration, start to finish.</p>
+
+    <!-- ================= ONE TIME PAYMENT ================= -->
+    <div class="group-section">
+      <div class="group-title">One Time Payment</div>
+      <p class="group-desc">A single purchase, nothing stored afterward — tokenize → sale, once.</p>
+      <div class="grid">
+        <a class="card" href="/demos/one-time/card/">
+          <div class="icon icon-badge badge-card"><svg viewBox="0 0 24 16" fill="none" stroke="white" stroke-width="1.6"><rect x="1" y="1" width="22" height="14" rx="2"/><line x1="1" y1="6" x2="23" y2="6"/></svg><span class="netmarks"><span class="visa-dot"></span><span class="mc-dot-1"></span><span class="mc-dot-2"></span></span></div>
+          <h3>Cards (Hosted Fields)</h3>
+          <p>Standard credit/debit card entry via Braintree Hosted Fields.</p>
+        </a>
+        <a class="card" href="/demos/one-time/card-3ds/">
+          <div class="icon icon-badge badge-card"><svg viewBox="0 0 24 16" fill="none" stroke="white" stroke-width="1.6"><rect x="1" y="1" width="22" height="14" rx="2"/><line x1="1" y1="6" x2="23" y2="6"/></svg><span class="badge-3ds-lock"><svg viewBox="0 0 24 24" fill="white"><path d="M12 17a2 2 0 002-2 2 2 0 00-2-2 2 2 0 00-2 2 2 2 0 002 2zm6-9h-1V6a5 5 0 00-10 0v2H6a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V10a2 2 0 00-2-2zm-6-4a3 3 0 013 3v2H9V6a3 3 0 013-3z"/></svg></span></div>
+          <h3>Card + 3D Secure</h3>
+          <p>Adds an authentication challenge before the sale — same nonce, upgraded.</p>
+        </a>
+        <a class="card" href="/demos/one-time/paypal/">
+          <div class="icon icon-badge badge-paypal wide">Pay<span class="p2">Pal</span></div>
+          <h3>PayPal</h3>
+          <p>PayPal one-time checkout button flow via Braintree.</p>
+        </a>
+        <a class="card" href="/demos/one-time/paylater/">
+          <div class="icon icon-badge badge-paylater-mono wide"><span class="pl-p">P</span><span class="pl-text">&nbsp;Pay Later</span></div>
+          <h3>Pay Later</h3>
+          <p>PayPal BNPL — same component as PayPal, different funding source.</p>
+        </a>
+        <a class="card" href="/demos/one-time/venmo/">
+          <div class="icon icon-badge badge-venmo wide">venmo</div>
+          <h3>Venmo</h3>
+          <p>Desktop QR code flow — scan with the Venmo app to approve.</p>
+        </a>
+        <a class="card" href="/demos/one-time/google-pay/">
+          <div class="icon icon-badge badge-googlepay wide"><span class="g-blue">G</span>&nbsp;Pay</div>
+          <h3>Google Pay</h3>
+          <p>Google Pay button flow via Braintree (TEST environment).</p>
+        </a>
+        <a class="card" href="/demos/one-time/apple-pay/">
+          <div class="icon icon-badge badge-applepay wide">Pay</div>
+          <h3>Apple Pay</h3>
+          <p>Safari/Apple devices only — needs domain + cert setup.</p>
+        </a>
+        <a class="card" href="/demos/one-time/ach/">
+          <div class="icon icon-badge badge-ach">ACH</div>
+          <h3>ACH Direct Debit</h3>
+          <p>Raw bank account inputs — not Hosted Fields. No recurring support.</p>
+        </a>
+      </div>
+    </div>
+
+    <!-- ================= CHECKOUT WITH VAULT ================= -->
+    <div class="group-section">
+      <div class="group-title">Checkout with Vault</div>
+      <p class="group-desc">Same purchase flow as above, plus an option to save the payment method for next time — one sale, one extra flag.</p>
+      <div class="grid">
+        <a class="card" href="/demos/checkout-with-vault/card/">
+          <div class="icon icon-badge badge-card"><svg viewBox="0 0 24 16" fill="none" stroke="white" stroke-width="1.6"><rect x="1" y="1" width="22" height="14" rx="2"/><line x1="1" y1="6" x2="23" y2="6"/></svg><span class="netmarks"><span class="visa-dot"></span><span class="mc-dot-1"></span><span class="mc-dot-2"></span></span></div>
+          <h3>Card + Save for Later</h3>
+          <p>storeInVaultOnSuccess — invisible to the buyer.</p>
+        </a>
+        <a class="card" href="/demos/checkout-with-vault/card-3ds/">
+          <div class="icon icon-badge badge-card"><svg viewBox="0 0 24 16" fill="none" stroke="white" stroke-width="1.6"><rect x="1" y="1" width="22" height="14" rx="2"/><line x1="1" y1="6" x2="23" y2="6"/></svg><span class="badge-3ds-lock"><svg viewBox="0 0 24 24" fill="white"><path d="M12 17a2 2 0 002-2 2 2 0 00-2-2 2 2 0 00-2 2 2 2 0 002 2zm6-9h-1V6a5 5 0 00-10 0v2H6a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V10a2 2 0 00-2-2zm-6-4a3 3 0 013 3v2H9V6a3 3 0 013-3z"/></svg></span></div>
+          <h3>Card + 3DS + Save for Later</h3>
+          <p>Challenge now, vault the authenticated card for later.</p>
+        </a>
+        <a class="card" href="/demos/checkout-with-vault/paypal/">
+          <div class="icon icon-badge badge-paypal wide">Pay<span class="p2">Pal</span><span class="badge-vault"><svg viewBox="0 0 24 24" fill="white"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></span></div>
+          <h3>PayPal + Save for Later</h3>
+          <p>Buyer sees an explicit billing agreement consent step.</p>
+        </a>
+      </div>
+    </div>
+
+    <!-- ================= VAULT ================= -->
+    <div class="group-section">
+      <div class="group-title">Vault</div>
+      <p class="group-desc">Store now, charge later — no purchase happens at storage time, and no card/login step happens at charge time.</p>
+      <div class="grid">
+        <a class="card" href="/demos/vault/store/card/">
+          <div class="icon icon-badge badge-card"><svg viewBox="0 0 24 16" fill="none" stroke="white" stroke-width="1.6"><rect x="1" y="1" width="22" height="14" rx="2"/><line x1="1" y1="6" x2="23" y2="6"/></svg><span class="badge-vault"><svg viewBox="0 0 24 24" fill="white"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></span></div>
+          <h3>Store: Card</h3>
+          <p>Tokenize + vault only — zero dollars move.</p>
+        </a>
+        <a class="card" href="/demos/vault/store/card-3ds/">
+          <div class="icon icon-badge badge-card"><svg viewBox="0 0 24 16" fill="none" stroke="white" stroke-width="1.6"><rect x="1" y="1" width="22" height="14" rx="2"/><line x1="1" y1="6" x2="23" y2="6"/></svg><span class="badge-3ds-lock"><svg viewBox="0 0 24 24" fill="white"><path d="M12 17a2 2 0 002-2 2 2 0 00-2-2 2 2 0 00-2 2 2 2 0 002 2zm6-9h-1V6a5 5 0 00-10 0v2H6a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V10a2 2 0 00-2-2zm-6-4a3 3 0 013 3v2H9V6a3 3 0 013-3z"/></svg></span></div>
+          <h3>Store: Card + 3DS</h3>
+          <p>SCA at storage time — for when the amount isn't known yet.</p>
+        </a>
+        <a class="card" href="/demos/vault/store/paypal/">
+          <div class="icon icon-badge badge-paypal wide">Pay<span class="p2">Pal</span><span class="badge-vault"><svg viewBox="0 0 24 24" fill="white"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></span></div>
+          <h3>Store: PayPal</h3>
+          <p>Billing agreement only — flow: 'vault', not 'checkout'.</p>
+        </a>
+        <a class="card" href="/demos/vault/store/venmo/">
+          <div class="icon icon-badge badge-venmo wide" style="font-size:11px;">venmo<span class="badge-vault"><svg viewBox="0 0 24 24" fill="white"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></span></div>
+          <h3>Store: Venmo</h3>
+          <p>multi_use tokenization — link now, charge later, no amount collected here.</p>
+        </a>
+        <a class="card" href="/demos/vault/store/ach/">
+          <div class="icon icon-badge badge-ach" style="font-size:11px;">ACH<span class="badge-vault"><svg viewBox="0 0 24 24" fill="white"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></span></div>
+          <h3>Store: ACH</h3>
+          <p>Vaulted ≠ verified — see verification method options.</p>
+        </a>
+        <a class="card" href="/demos/vault/charge/">
+          <div class="icon icon-badge badge-generic">💾</div>
+          <h3>Charge Vaulted</h3>
+          <p>No SDK, no card entry — charge what's already on file.</p>
+        </a>
+      </div>
+    </div>
+
+    <!-- ================= PAYOUTS ================= -->
+    <div class="group-section">
+      <div class="group-title">Payouts</div>
+      <p class="group-desc">Money moving the other direction — merchant to customer, no prior sale required. Gaming/RMG-specific; requires Credits Enabled.</p>
+      <div class="grid">
+        <a class="card" href="/demos/payouts/">
+          <div class="icon icon-badge badge-generic">💸</div>
+          <h3>Send Payout</h3>
+          <p>Detached credit to a vaulted payment method — gated by account config, not input data.</p>
+        </a>
+      </div>
+    </div>
+
+    <p class="footer-note">Running against sandbox — every action here hits real Braintree sandbox endpoints, just like a live integration would.</p>
+  </div>
+</body>
+</html>

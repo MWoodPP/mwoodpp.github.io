@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Vault — Charge Vaulted</title>
+<link rel="stylesheet" href="/shared/style.css">
+</head>
+<body>
+
+  <!-- Note: no Braintree client SDK scripts at all on this page. See the
+       app.js header comment for why — nothing here talks to Braintree's
+       client-side SDK; the browser only ever calls our own server. -->
+
+  <!-- ================= TOP BAR ================= -->
+  <div class="top-bar">
+    <div class="brand">
+      <a href="/" style="color:inherit;text-decoration:none;">🧾 Braintree Demo Suite</a>
+      <span class="badge">Sandbox</span>
+      <span class="badge group-badge">Vault</span>
+    </div>
+    <div class="token-row">
+      <span id="cfg-token-display">(not needed on this page)</span>
+    </div>
+    <button class="btn-light" id="cfg-clear-btn">Clear All</button>
+  </div>
+
+  <div class="edit-toggle-row">
+    <input type="checkbox" id="cfg-edit-toggle">
+    <label for="cfg-edit-toggle">Use custom credentials instead of sandbox defaults</label>
+  </div>
+
+  <div id="cfg-credentials-fields">
+    <label>Environment
+      <select id="cfg-environment">
+        <option value="sandbox" selected>Sandbox</option>
+        <option value="production">Production</option>
+      </select>
+    </label>
+    <label>Merchant ID
+      <input type="text" id="cfg-merchant-id" placeholder="e.g. 69jzfyjt6ng6pyxq">
+    </label>
+    <label>Public Key
+      <input type="text" id="cfg-public-key" placeholder="Public key">
+    </label>
+    <label>Private Key
+      <input type="password" id="cfg-private-key" placeholder="Private key">
+    </label>
+  </div>
+
+  <!-- ================= MAIN SHELL ================= -->
+  <div class="demo-shell">
+
+    <!-- FAR LEFT: Live Code Walkthrough (shared component) -->
+    <div class="panel code-panel">
+      <div class="code-panel-header">
+        <h2 style="margin: 0;">Live Code</h2>
+        <div class="code-tabs">
+          <button class="code-tab active" id="code-tab-client" type="button">app.js</button>
+          <button class="code-tab" id="code-tab-server" type="button">server.js</button>
+        </div>
+      </div>
+      <p class="code-panel-filename" id="code-panel-filename">app.js — client</p>
+      <div id="code-panel-content"></div>
+    </div>
+
+
+    <!-- LEFT: Diagnostics -->
+    <div class="panel">
+      <h2>Diagnostics / Response Log</h2>
+      <div id="diagnostics-panel"></div>
+    </div>
+
+    <!-- RIGHT: Form -->
+    <div class="panel">
+      <div class="payment-method-tabs">
+        <a href="/demos/vault/store/card/">Store: Card</a>
+        <a href="/demos/vault/store/card-3ds/">Store: Card + 3DS</a>
+        <a href="/demos/vault/store/paypal/">Store: PayPal</a>
+        <a href="/demos/vault/store/venmo/">Store: Venmo</a>
+        <a href="/demos/vault/store/ach/">Store: ACH</a>
+        <a href="/demos/vault/charge/" class="active">Charge Vaulted</a>
+      </div>
+
+      <p class="hint">
+        <strong>No card entry, no PayPal login, no SDK on this page at all.</strong>
+        This charges a payment method that was already tokenized and stored
+        earlier — via any "Store" tab above, or via any "Checkout with Vault"
+        demo. Pick one below and charge it. Works identically regardless of
+        which payment method was originally vaulted.
+      </p>
+
+      <h2>Previously Vaulted Customers</h2>
+      <div id="vaulted-list"></div>
+      <button class="btn-light" id="refresh-btn" style="margin-top: 8px;">Refresh List</button>
+
+      <h2 style="margin-top: 20px;">Charge Selected</h2>
+      <div class="field-row">
+        <div class="field">
+          <label for="charge-amount">Amount (USD)</label>
+          <input type="text" id="charge-amount" value="25.00">
+        </div>
+        <div class="field">
+          <label for="selected-token">Selected Payment Method Token</label>
+          <input type="text" id="selected-token" placeholder="Select a customer above, or paste a token directly" readonly>
+        </div>
+      </div>
+
+      <button class="submit-btn" id="charge-btn" disabled>Charge Now</button>
+
+      <div class="result-banner" id="result-banner"></div>
+    </div>
+
+  </div>
+
+  <style>
+    .hint {
+      font-size: 13px;
+      color: var(--color-text-muted);
+      background: #fef6e7;
+      border: 1px solid #f0dfb8;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin: 0 0 18px;
+    }
+    #vaulted-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .vaulted-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      background: white;
+    }
+    .vaulted-row:hover {
+      border-color: var(--color-accent);
+    }
+    .vaulted-row.selected {
+      border-color: var(--color-accent);
+      background: #eef4fb;
+    }
+    .vaulted-row .meta {
+      font-size: 11px;
+      color: var(--color-text-muted);
+    }
+    .vaulted-empty {
+      font-size: 13px;
+      color: var(--color-text-muted);
+      padding: 10px 0;
+    }
+    #selected-token {
+      background: #f5f6f8;
+      font-family: monospace;
+      font-size: 12px;
+    }
+  
+    /* ===== Code Panel layout (shared pattern across pages) ===== */
+    body.vaultcharge-page .demo-shell {
+      grid-template-columns: 560px 380px 1fr;
+      max-width: 1640px;
+    }
+    @media (max-width: 1540px) {
+      body.vaultcharge-page .demo-shell { grid-template-columns: 440px 380px 1fr; max-width: 1520px; }
+    }
+    @media (max-width: 1240px) {
+      body.vaultcharge-page .demo-shell { grid-template-columns: 380px 1fr; }
+      .code-panel { display: none; }
+    }
+    @media (max-width: 900px) {
+      body.vaultcharge-page .demo-shell { grid-template-columns: 1fr; }
+    }
+
+    .code-panel {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      height: 620px;
+    }
+    .code-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      flex-shrink: 0;
+    }
+    .code-tabs { display: flex; gap: 4px; }
+    .code-tab {
+      background: #f0f1f3;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      cursor: pointer;
+    }
+    .code-tab:hover { background: #e6e7ea; }
+    .code-tab.active {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+    .code-panel-filename {
+      font-size: 11px;
+      font-family: "SF Mono", Menlo, monospace;
+      color: var(--color-text-muted);
+      margin: 0 0 10px;
+      flex-shrink: 0;
+    }
+    #code-panel-content {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      border-radius: 8px;
+      background: #1a1a2e;
+    }
+    #code-panel-content pre {
+      margin: 0 !important;
+      min-height: 100%;
+      font-size: 11.5px !important;
+      border-radius: 8px !important;
+      color: #ccc;
+    }
+    #code-panel-content code { color: inherit; }
+    #code-panel-content .line-highlight {
+      background: rgba(0, 112, 186, 0.35) !important;
+      background-image: none !important;
+    }
+
+  </style>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-highlight/prism-line-highlight.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-highlight/prism-line-highlight.min.js"></script>
+  <script>
+    document.body.classList.add('vaultcharge-page');
+  </script>
+
+  <script src="/shared/diagnostics.js"></script>
+  <script src="/shared/config-panel.js"></script>
+  <script src="/shared/code-panel.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

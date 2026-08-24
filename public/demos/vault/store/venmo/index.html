@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Vault — Store Venmo (No Purchase)</title>
+<link rel="stylesheet" href="/shared/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-highlight/prism-line-highlight.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-highlight/prism-line-highlight.min.js"></script>
+<script src="https://js.braintreegateway.com/web/3.140.0/js/client.min.js"></script>
+<script src="https://js.braintreegateway.com/web/3.140.0/js/venmo.min.js"></script>
+</head>
+<body>
+
+  <!-- ================= TOP BAR ================= -->
+  <div class="top-bar">
+    <div class="brand">
+      <a href="/" style="color:inherit;text-decoration:none;">🧾 Braintree Demo Suite</a>
+      <span class="badge">Sandbox</span>
+      <span class="badge group-badge">Vault</span>
+    </div>
+    <div class="token-row">
+      <span id="cfg-token-display">(loading...)</span>
+      <button class="btn-light" id="cfg-copy-btn">Copy</button>
+    </div>
+    <button class="btn-primary" id="cfg-generate-btn">Generate New Token</button>
+    <button class="btn-light" id="cfg-clear-btn">Clear All</button>
+  </div>
+
+  <div class="edit-toggle-row">
+    <input type="checkbox" id="cfg-edit-toggle">
+    <label for="cfg-edit-toggle">Use custom credentials instead of sandbox defaults</label>
+  </div>
+
+  <div id="cfg-credentials-fields">
+    <label>Environment
+      <select id="cfg-environment">
+        <option value="sandbox" selected>Sandbox</option>
+        <option value="production">Production</option>
+      </select>
+    </label>
+    <label>Merchant ID
+      <input type="text" id="cfg-merchant-id" placeholder="e.g. 69jzfyjt6ng6pyxq">
+    </label>
+    <label>Public Key
+      <input type="text" id="cfg-public-key" placeholder="Public key">
+    </label>
+    <label>Private Key
+      <input type="password" id="cfg-private-key" placeholder="Private key">
+    </label>
+  </div>
+
+  <!-- ================= MAIN SHELL ================= -->
+  <div class="demo-shell">
+
+    <!-- FAR LEFT: Live Code Walkthrough (shared component) -->
+    <div class="panel code-panel">
+      <div class="code-panel-header">
+        <h2 style="margin: 0;">Live Code</h2>
+        <div class="code-tabs">
+          <button class="code-tab active" id="code-tab-client" type="button">app.js</button>
+          <button class="code-tab" id="code-tab-server" type="button">server.js</button>
+        </div>
+      </div>
+      <p class="code-panel-filename" id="code-panel-filename">app.js — client</p>
+      <div id="code-panel-content"></div>
+    </div>
+
+
+    <!-- LEFT: Diagnostics -->
+    <div class="panel">
+      <h2>Diagnostics / Response Log</h2>
+      <div id="diagnostics-panel"></div>
+    </div>
+
+    <!-- RIGHT: Form -->
+    <div class="panel">
+      <div class="payment-method-tabs">
+        <a href="/demos/vault/store/card/">Store: Card</a>
+        <a href="/demos/vault/store/card-3ds/">Store: Card + 3DS</a>
+        <a href="/demos/vault/store/paypal/">Store: PayPal</a>
+        <a href="/demos/vault/store/venmo/" class="active">Store: Venmo</a>
+        <a href="/demos/vault/store/ach/">Store: ACH</a>
+        <a href="/demos/vault/charge/">Charge Vaulted</a>
+      </div>
+
+      <p class="hint">
+        <strong>No charge happens on this page.</strong> This links a Venmo
+        account for future use — no amount, no purchase, just the account
+        connection itself. Uses <code>paymentMethodUsage: 'multi_use'</code>,
+        the Venmo-specific setting required for a vaultable payment method —
+        see the app.js header comment for why this differs from the One Time
+        Payment → Venmo demo.
+      </p>
+
+      <h2>Customer Details</h2>
+      <div class="field-row">
+        <div class="field">
+          <label for="cust-first-name">First Name</label>
+          <input type="text" id="cust-first-name" value="Jane">
+        </div>
+        <div class="field">
+          <label for="cust-last-name">Last Name</label>
+          <input type="text" id="cust-last-name" value="Doe">
+        </div>
+      </div>
+      <div class="field-row single">
+        <div class="field">
+          <label for="cust-email">Email</label>
+          <input type="email" id="cust-email" value="jane.doe@example.com">
+        </div>
+      </div>
+
+      <h2 style="margin-top: 20px;">Link Venmo Account</h2>
+      <p class="apay-note" id="venmo-note">Waiting for client token...</p>
+      <div id="venmo-qr-mount"></div>
+      <button id="venmo-btn" class="submit-btn" disabled>Link Venmo Account</button>
+
+      <div class="result-banner" id="result-banner"></div>
+      <div class="vault-result" id="vault-result"></div>
+    </div>
+
+    <!-- RIGHT OF RIGHT: Testing Notes (Venmo-specific — not shared) -->
+    <div class="panel ref-panel">
+      <h2>Sandbox Testing Notes</h2>
+      <p class="ref-intro">
+        Venmo's sandbox doesn't offer clickable test values the way Card/ACH
+        do — there's no "bad QR code" to scan for a decline. These are
+        informational, not click-to-fill.
+      </p>
+
+      <div class="ref-drilldown" id="ref-drilldown">
+
+        <button class="ref-cat" data-target="ref-happy-path">
+          <span class="ref-cat-dot ref-dot-success"></span>
+          What a Successful Scan Looks Like
+          <span class="ref-chevron">›</span>
+        </button>
+        <div class="ref-cat-body" id="ref-happy-path">
+          <div class="ref-note">
+            The app-switch/QR screen shows a generic test merchant with
+            Braintree's own logo instead of "Braintree Demo Suite" — that's
+            expected sandbox behavior, not a config bug on this page.
+          </div>
+          <div class="ref-note">
+            A successful scan + approve in the Venmo app always resolves to
+            a fixed test user named <strong>VenmoJoe</strong>, regardless of
+            which real Venmo account does the scanning.
+          </div>
+        </div>
+
+        <button class="ref-cat" data-target="ref-no-declines">
+          <span class="ref-cat-dot ref-dot-pending"></span>
+          Why There's No Decline Test Here
+          <span class="ref-chevron">›</span>
+        </button>
+        <div class="ref-cat-body" id="ref-no-declines">
+          <div class="ref-note">
+            Venmo doesn't support true end-to-end negative-path testing via
+            the interactive app-switch flow the way this page's button
+            works — there's no equivalent to typing a decline-triggering
+            card or account number.
+          </div>
+          <div class="ref-note">
+            Negative testing for Venmo happens <strong>server-side</strong>
+            instead, by passing a fake nonce (e.g.
+            <code>fake-token-issuance-error-venmo-account-nonce</code>)
+            directly to a server-side <code>transaction.sale()</code> call —
+            bypassing <code>tokenize()</code> entirely. That doesn't fit this
+            page's real click-through flow, so it isn't wired up here.
+          </div>
+        </div>
+
+        <button class="ref-cat" data-target="ref-multi-use">
+          <span class="ref-cat-dot ref-dot-error"></span>
+          The multi_use Gotcha
+          <span class="ref-chevron">›</span>
+        </button>
+        <div class="ref-cat-body" id="ref-multi-use">
+          <div class="ref-note">
+            <code>single_use</code> (used on the One Time Payment → Venmo
+            demo) cannot be vaulted at all. This page uses
+            <code>multi_use</code> specifically so the resulting payment
+            method can actually be charged later from
+            <a href="/demos/vault/charge/">Vault → Charge Vaulted</a>.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <style>
+    .hint {
+      font-size: 13px;
+      color: var(--color-text-muted);
+      background: #fef6e7;
+      border: 1px solid #f0dfb8;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin: 0 0 18px;
+    }
+    .hint code {
+      background: rgba(0,0,0,0.06);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .apay-note {
+      font-size: 12px;
+      color: var(--color-text-muted);
+      margin: 0 0 12px;
+    }
+    .vault-result {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      background: #edf7ed;
+      border: 1px solid #cfe8cf;
+      display: none;
+    }
+    .vault-result.show { display: block; }
+    .vault-result code {
+      display: block;
+      margin-top: 4px;
+      font-size: 12px;
+      word-break: break-all;
+    }
+
+    /* ===== Venmo vault-store: third reference column ===== */
+    body.venmo-vault-page .demo-shell {
+      grid-template-columns: 380px 1fr 300px;
+    }
+    @media (max-width: 1240px) {
+      body.venmo-vault-page .demo-shell { grid-template-columns: 380px 1fr; }
+      .ref-panel { display: none; }
+    }
+    @media (max-width: 900px) {
+      body.venmo-vault-page .demo-shell { grid-template-columns: 1fr; }
+    }
+
+    .ref-panel { padding: 16px; }
+    .ref-intro {
+      font-size: 11.5px;
+      line-height: 1.5;
+      color: var(--color-text-muted);
+      margin: -6px 0 14px;
+    }
+    .ref-drilldown { display: flex; flex-direction: column; gap: 4px; }
+
+    .ref-cat {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      text-align: left;
+      background: #fafafa;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 9px 10px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--color-text);
+      cursor: pointer;
+    }
+    .ref-cat:hover { background: #f0f1f3; }
+    .ref-cat .ref-chevron {
+      margin-left: auto;
+      color: var(--color-text-muted);
+      transition: transform 0.15s ease;
+    }
+    .ref-cat.open .ref-chevron { transform: rotate(90deg); }
+
+    .ref-cat-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .ref-dot-success { background: var(--color-success); }
+    .ref-dot-error { background: var(--color-error); }
+    .ref-dot-pending { background: var(--color-pending); }
+
+    .ref-cat-body {
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      padding: 6px 4px 12px 4px;
+    }
+    .ref-cat-body.open { display: flex; }
+
+    .ref-note {
+      font-size: 11.5px;
+      line-height: 1.5;
+      color: var(--color-text-muted);
+      background: white;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 8px 9px;
+    }
+    .ref-note code {
+      background: rgba(0,0,0,0.06);
+      padding: 1px 4px;
+      border-radius: 4px;
+      font-size: 11px;
+      word-break: break-all;
+    }
+  
+    /* ===== Code Panel layout (shared pattern across pages) ===== */
+    body.venmo-vault-page .demo-shell {
+      grid-template-columns: 560px 380px 1fr 300px;
+      max-width: 1940px;
+    }
+    @media (max-width: 1840px) {
+      body.venmo-vault-page .demo-shell { grid-template-columns: 440px 380px 1fr 300px; max-width: 1820px; }
+    }
+    @media (max-width: 1680px) {
+      body.venmo-vault-page .demo-shell { grid-template-columns: 380px 1fr 300px; max-width: 1400px; }
+      .code-panel { display: none; }
+    }
+    @media (max-width: 1240px) {
+      body.venmo-vault-page .demo-shell { grid-template-columns: 380px 1fr; }
+      .ref-panel { display: none; }
+    }
+    @media (max-width: 900px) {
+      body.venmo-vault-page .demo-shell { grid-template-columns: 1fr; }
+    }
+
+    .code-panel {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      height: 620px;
+    }
+    .code-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      flex-shrink: 0;
+    }
+    .code-tabs { display: flex; gap: 4px; }
+    .code-tab {
+      background: #f0f1f3;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      cursor: pointer;
+    }
+    .code-tab:hover { background: #e6e7ea; }
+    .code-tab.active {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+    .code-panel-filename {
+      font-size: 11px;
+      font-family: "SF Mono", Menlo, monospace;
+      color: var(--color-text-muted);
+      margin: 0 0 10px;
+      flex-shrink: 0;
+    }
+    #code-panel-content {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      border-radius: 8px;
+      background: #1a1a2e;
+    }
+    #code-panel-content pre {
+      margin: 0 !important;
+      min-height: 100%;
+      font-size: 11.5px !important;
+      border-radius: 8px !important;
+      color: #ccc;
+    }
+    #code-panel-content code { color: inherit; }
+    #code-panel-content .line-highlight {
+      background: rgba(0, 112, 186, 0.35) !important;
+      background-image: none !important;
+    }
+
+  </style>
+
+  <script>
+    document.body.classList.add('venmo-vault-page');
+
+    document.querySelectorAll('.ref-cat').forEach((catBtn) => {
+      catBtn.addEventListener('click', () => {
+        const body = document.getElementById(catBtn.dataset.target);
+        const nowOpen = !body.classList.contains('open');
+        body.classList.toggle('open', nowOpen);
+        catBtn.classList.toggle('open', nowOpen);
+      });
+    });
+  </script>
+
+  <script src="/shared/diagnostics.js"></script>
+  <script src="/shared/config-panel.js"></script>
+  <script src="/shared/code-panel.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

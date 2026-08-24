@@ -1,0 +1,15 @@
+# Credentials — never commit these
+.env
+.env.*
+!.env.example
+
+# HTTPS cert files (self-signed, machine-specific)
+*.pem
+
+# Dependencies
+node_modules/
+
+# OS/editor cruft
+.DS_Store
+.vscode/
+*.log
