@@ -1,0 +1,12 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appID": "26ULBZT6V2.PayPal.WoodSBXBraintreeiOS",
+        "paths": [
+          "/braintree/*"
+        ]
+      }
+    ]
+  }
+}
