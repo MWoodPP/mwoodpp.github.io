@@ -94,10 +94,12 @@ function renderPayPalButton() {
     // >>> STEP:tokenize
     onApprove: async function (data) {
       Diagnostics.log('pending', 'Buyer approved — tokenizing...');
-      await CodePanel.goToClientStep('tokenize');
+      // NOTE: no pause here — see one-time/paypal/app.js's onApprove for
+      // why (PayPal's popup is already waiting on this callback).
 
-      return paypalCheckoutInstance.tokenizePayment(data).then((payload) => {
+      return paypalCheckoutInstance.tokenizePayment(data).then(async (payload) => {
         Diagnostics.log('success', 'Nonce created', payload);
+        await CodePanel.goToClientStep('tokenize');
         return submitCheckout(payload.nonce);
       }).catch((err) => {
         Diagnostics.log('error', 'tokenizePayment() failed', { message: err.message });

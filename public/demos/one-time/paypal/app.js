@@ -106,10 +106,17 @@ function renderPayPalButton() {
     // >>> STEP:tokenize
     onApprove: async function (data) {
       Diagnostics.log('pending', 'Buyer approved — tokenizing payment...');
-      await CodePanel.goToClientStep('tokenize');
+      // NOTE: no pause here (before calling tokenizePayment). The PayPal
+      // popup has ALREADY shown approval and is actively waiting for this
+      // callback to finish promptly — pausing before responding can make
+      // PayPal's popup think something went wrong and show its own
+      // "lost track of you" recovery screen. The checkpoint below fires
+      // AFTER tokenization completes instead, narrating what just
+      // happened rather than gating what's about to happen.
 
-      return paypalCheckoutInstance.tokenizePayment(data).then((payload) => {
+      return paypalCheckoutInstance.tokenizePayment(data).then(async (payload) => {
         Diagnostics.log('success', 'Nonce created', payload);
+        await CodePanel.goToClientStep('tokenize');
         return submitCheckout(payload.nonce);
       }).catch((err) => {
         Diagnostics.log('error', 'tokenizePayment() failed', { message: err.message });

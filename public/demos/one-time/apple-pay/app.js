@@ -144,14 +144,25 @@ function handleApplePayClick() {
   // >>> STEP:merchantvalidation
   session.onvalidatemerchant = async (event) => {
     Diagnostics.log('pending', 'Apple requested merchant validation...');
-    await CodePanel.goToClientStep('merchantvalidation');
+    // NOTE: no pause here (before calling performValidation). Apple's
+    // native sheet is ALREADY open and onvalidatemerchant has a real,
+    // Apple-enforced timeout — pausing before responding risks the whole
+    // session timing out, not just a confusing recovery screen the way
+    // PayPal's popup shows. The checkpoint below fires after validation
+    // completes, right before the one call Apple is actually waiting on
+    // (completeMerchantValidation) — this narrows the human-pacing window
+    // to that single handoff instead of the whole round-trip, but a real
+    // timeout is still possible if "Next" isn't clicked promptly. Apple
+    // Pay is the one step in this suite where step mode can't fully
+    // eliminate that risk, only shrink it.
 
     applePayInstance.performValidation({
       validationURL: event.validationURL,
       displayName: 'Braintree Demo Suite',
     })
-      .then((merchantSession) => {
+      .then(async (merchantSession) => {
         Diagnostics.log('success', 'Merchant validated — Apple Pay sheet will now open');
+        await CodePanel.goToClientStep('merchantvalidation');
         session.completeMerchantValidation(merchantSession);
       })
       .catch((err) => {
@@ -165,12 +176,15 @@ function handleApplePayClick() {
   // passcode and approved the payment on the Apple Pay sheet.
   session.onpaymentauthorized = async (event) => {
     Diagnostics.log('pending', 'Buyer authorized payment — tokenizing...');
-    await CodePanel.goToClientStep('tokenize');
+    // NOTE: no pause here — see onvalidatemerchant above for why. Same
+    // timeout risk applies; the checkpoint below fires after tokenize()
+    // resolves instead, narrowing (not eliminating) the pacing window.
 
     // >>> STEP:tokenize
     applePayInstance.tokenize({ token: event.payment.token })
-      .then((payload) => {
+      .then(async (payload) => {
         Diagnostics.log('success', 'Nonce created', payload);
+        await CodePanel.goToClientStep('tokenize');
 
         return submitCheckout(payload.nonce).then((succeeded) => {
           // Reporting the outcome back to `session` is required — it's what
