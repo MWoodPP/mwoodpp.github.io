@@ -87,7 +87,7 @@ function loadVaultedCustomers() {
     });
 }
 
-function handleCharge() {
+async function handleCharge() {
   const chargeBtn = document.getElementById('charge-btn');
   const resultBanner = document.getElementById('result-banner');
   resultBanner.className = 'result-banner';
@@ -103,7 +103,7 @@ function handleCharge() {
   chargeBtn.textContent = 'Charging...';
 
   Diagnostics.log('pending', `Calling /api/vault/charge for $${amount} against token ${selectedToken} — no card entry, no nonce, this is charging what's already on file...`);
-  CodePanel.goToClientStep('submit');
+  await CodePanel.goToClientStep('submit');
 
   // >>> STEP:submit
   fetch('/api/vault/charge', {
@@ -116,8 +116,8 @@ function handleCharge() {
     }),
   })
   // <<< STEP:submit
-    .then((res) => {
-      CodePanel.goToServerStep('vaultcharge');
+    .then(async (res) => {
+      await CodePanel.goToServerStep('vaultcharge');
       return res.json();
     })
     .then((data) => {

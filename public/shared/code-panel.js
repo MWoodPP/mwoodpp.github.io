@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * SHARED CODE PANEL — Live Code Walkthrough
+ * SHARED CODE PANEL — Live Code Walkthrough (+ Step-by-Step Mode)
  * ============================================================================
  * WHAT THIS DOES AND, IMPORTANTLY, WHAT IT DOESN'T:
  * ---------------------------------------------------------------------------
@@ -27,10 +27,29 @@
  * Highlighting a step later is just: set the <pre>'s data-line to that
  * range and re-run Prism, which re-draws its Line Highlight overlay.
  *
+ * STEP-BY-STEP MODE (new):
+ * A toggle, injected into the Code Panel's own header, that turns each
+ * STEP-marker transition into a genuine pause — the flow doesn't just
+ * highlight the next block of code, it actually halts execution (via an
+ * awaited Promise) until someone clicks "Next." This is for live demos:
+ * flip it on, walk someone through the flow one deliberate click at a
+ * time; leave it off (the default) for normal fast testing, where
+ * everything runs exactly as before.
+ *
+ * Two things make this possible without touching every page's HTML:
+ *   1. The toggle + Next button are injected by THIS script at init time,
+ *      anchored to elements (`.code-panel-header`, `#code-panel-filename`)
+ *      that already exist identically on every page.
+ *   2. Every page's app.js already calls `CodePanel.goToClientStep(...)` /
+ *      `goToServerStep(...)` at each meaningful boundary — those call sites
+ *      just need `await` in front of them (a mechanical change) for the
+ *      pause to actually hold up the surrounding async function, rather
+ *      than firing-and-forgetting the highlight the way it did before.
+ *
  * USAGE (from a page's own app.js):
- *   CodePanel.init({ clientPath: 'app.js', serverStepFile: 'server' });
- *   CodePanel.goToClientStep('tokenize');
- *   CodePanel.goToServerStep('checkout');   // auto-switches to Server tab
+ *   CodePanel.init({ clientPath: 'app.js' });
+ *   await CodePanel.goToClientStep('tokenize');   // now awaited — pauses if step mode is on
+ *   await CodePanel.goToServerStep('checkout');   // same; also auto-switches to Server tab
  * ============================================================================
  */
 const CodePanel = (() => {
@@ -39,6 +58,33 @@ const CodePanel = (() => {
   let clientSteps = {};
   let serverSteps = {};
   let currentView = 'client';
+
+  // ---- Step-by-step mode state ----
+  let stepModeEnabled = false;
+  let pendingResolve = null;
+
+  // Human-readable labels for the Next button, keyed by STEP marker id.
+  // Falls back to the raw id (still readable) for anything not listed here,
+  // so a future page's new STEP id never breaks this — it just shows the
+  // literal id instead of prose.
+  const STEP_LABELS = {
+    setup: 'set up the Braintree client & payment method',
+    tokenize: 'tokenize the payment method',
+    submit: 'submit the nonce to the server',
+    checkout: 'process the sale on the server',
+    vaultstore: 'store the payment method (no charge)',
+    vaultcharge: 'charge the vaulted payment method',
+    achcharge: 'process the ACH charge on the server',
+    payoutscredit: 'issue the payout on the server',
+    verify3ds: 'run 3D Secure verification',
+    merchantvalidation: 'validate the merchant with Apple',
+    createorder: 'create the PayPal order',
+    createbillingagreement: 'create the PayPal billing agreement',
+  };
+
+  function humanize(stepId) {
+    return STEP_LABELS[stepId] || stepId;
+  }
 
   function extractSteps(source) {
     const lines = source.split('\n');
@@ -154,15 +200,165 @@ const CodePanel = (() => {
     document.getElementById('code-tab-server')?.classList.add('active');
   }
 
+  // Waits one animation frame — used after switching tabs / re-rendering so
+  // Prism has actually painted before we try to highlight a range in it.
+  function nextFrame() {
+    return new Promise((resolve) => requestAnimationFrame(resolve));
+  }
+
+  // ---- Step-by-step mode: the actual pause mechanism ----
+
+  function resolvePending() {
+    const bar = document.getElementById('step-next-bar');
+    if (bar) bar.style.display = 'none';
+    if (pendingResolve) {
+      const r = pendingResolve;
+      pendingResolve = null;
+      r();
+    }
+  }
+
+  /**
+   * Pauses (if step mode is on) until the user clicks "Next," showing
+   * `label` on the button. Resolves immediately, with no visible change,
+   * if step mode is off — so every call site can unconditionally
+   * `await CodePanel.checkpoint(...)` without checking the mode itself.
+   *
+   * Exposed publicly (not just used internally by goToClientStep/
+   * goToServerStep) so a page can add a checkpoint at a moment that has no
+   * corresponding STEP marker to highlight — e.g. config-panel.js pauses
+   * here right before handing a freshly-fetched client token to the page,
+   * since that fetch happens in a different shared file with no STEP
+   * block of its own.
+   */
+  async function checkpoint(label) {
+    if (!stepModeEnabled) return;
+    return new Promise((resolve) => {
+      pendingResolve = resolve;
+      const bar = document.getElementById('step-next-bar');
+      const labelEl = document.getElementById('step-next-label');
+      if (labelEl) labelEl.textContent = label;
+      if (bar) bar.style.display = 'flex';
+    });
+  }
+
   async function goToClientStep(stepId) {
     if (currentView !== 'client') showClient();
-    // Give Prism a tick to finish the initial render before we re-highlight.
-    setTimeout(() => highlightStep('client', stepId), 0);
+    await nextFrame(); // let Prism finish the initial render before we re-highlight
+    highlightStep('client', stepId);
+    await checkpoint(humanize(stepId));
   }
 
   async function goToServerStep(stepId) {
     await showServer();
-    setTimeout(() => highlightStep('server', stepId), 30);
+    await nextFrame();
+    highlightStep('server', stepId);
+    await checkpoint(humanize(stepId));
+  }
+
+  // ---- Step-by-step mode: UI injection (no per-page HTML changes needed) ----
+
+  function injectStepModeStyles() {
+    if (document.getElementById('step-mode-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'step-mode-styles';
+    style.textContent = `
+      .step-mode-row {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px;
+        margin: -4px 0 8px;
+        flex-shrink: 0;
+      }
+      .step-mode-row label {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        color: var(--color-text-muted, #6b7280);
+        cursor: pointer;
+        user-select: none;
+      }
+      .step-mode-row input[type="checkbox"] {
+        width: 13px;
+        height: 13px;
+        cursor: pointer;
+      }
+      #step-next-bar {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        background: #fef6e7;
+        border: 1px solid #f0dfb8;
+        border-radius: 8px;
+        padding: 8px 10px;
+        margin-bottom: 8px;
+        flex-shrink: 0;
+      }
+      #step-next-bar .step-next-hint {
+        font-size: 11px;
+        color: #7a5c17;
+        line-height: 1.4;
+      }
+      #step-next-btn {
+        background: var(--color-primary, #003087);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      #step-next-btn:hover {
+        opacity: 0.9;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function injectStepModeUI() {
+    if (document.getElementById('step-mode-toggle')) return; // already injected
+
+    const header = document.querySelector('.code-panel-header');
+    const filenameEl = document.getElementById('code-panel-filename');
+    if (!header || !filenameEl) return; // page doesn't have a Code Panel — nothing to do
+
+    injectStepModeStyles();
+
+    const toggleRow = document.createElement('div');
+    toggleRow.className = 'step-mode-row';
+    toggleRow.innerHTML = `
+      <label for="step-mode-toggle">
+        <input type="checkbox" id="step-mode-toggle">
+        Step-by-step
+      </label>
+    `;
+    header.insertAdjacentElement('afterend', toggleRow);
+
+    const nextBar = document.createElement('div');
+    nextBar.id = 'step-next-bar';
+    nextBar.innerHTML = `
+      <span class="step-next-hint">Next: <span id="step-next-label"></span></span>
+      <button id="step-next-btn" type="button">Next →</button>
+    `;
+    filenameEl.insertAdjacentElement('afterend', nextBar);
+
+    document.getElementById('step-mode-toggle').addEventListener('change', (e) => {
+      stepModeEnabled = e.target.checked;
+      // If someone turns step mode OFF while a checkpoint is actively
+      // paused, don't leave the flow stuck waiting for a Next click that
+      // will never come — release it immediately.
+      if (!stepModeEnabled) resolvePending();
+    });
+
+    document.getElementById('step-next-btn').addEventListener('click', () => {
+      resolvePending();
+    });
   }
 
   async function init({ clientPath }) {
@@ -171,10 +367,17 @@ const CodePanel = (() => {
     // throwing, so the panel is never silently blank with no explanation.
     await loadClient(clientPath);
     showClient();
+    injectStepModeUI();
 
     document.getElementById('code-tab-client')?.addEventListener('click', showClient);
     document.getElementById('code-tab-server')?.addEventListener('click', showServer);
   }
 
-  return { init, goToClientStep, goToServerStep };
+  return {
+    init,
+    goToClientStep,
+    goToServerStep,
+    checkpoint,
+    isStepModeEnabled: () => stepModeEnabled,
+  };
 })();

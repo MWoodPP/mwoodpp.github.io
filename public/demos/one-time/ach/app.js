@@ -56,9 +56,9 @@ function getCredentialOverrides() {
 }
 
 // >>> STEP:setup
-function setupUsBankAccount(clientToken) {
+async function setupUsBankAccount(clientToken) {
   Diagnostics.log('pending', 'Creating Braintree client...');
-  CodePanel.goToClientStep('setup');
+  await CodePanel.goToClientStep('setup');
 
   braintree.client.create({ authorization: clientToken }, (err, clientInstance) => {
     if (err) {
@@ -85,7 +85,7 @@ function updateSubmitState() {
   document.getElementById('submit-btn').disabled = !usBankAccountInstance || !mandateChecked;
 }
 
-function handleSubmit() {
+async function handleSubmit() {
   const submitBtn = document.getElementById('submit-btn');
   const resultBanner = document.getElementById('result-banner');
   resultBanner.className = 'result-banner';
@@ -125,10 +125,10 @@ function handleSubmit() {
   const mandateText = 'By clicking ["Submit ACH Payment"], I authorize Braintree, a service of PayPal, to electronically debit my account and, if necessary, electronically credit my account to correct erroneous debits.';
 
   Diagnostics.log('pending', 'Tokenizing bank account details...', { bankDetails: { ...bankDetails, accountNumber: '••••' + bankDetails.accountNumber.slice(-4) } });
-  CodePanel.goToClientStep('tokenize');
+  await CodePanel.goToClientStep('tokenize');
 
   // >>> STEP:tokenize
-  usBankAccountInstance.tokenize({ bankDetails, mandateText }, (err, payload) => {
+  usBankAccountInstance.tokenize({ bankDetails, mandateText }, async (err, payload) => {
     if (err) {
       Diagnostics.log('error', 'Tokenization failed', { message: err.message });
       submitBtn.disabled = false;
@@ -144,7 +144,7 @@ function handleSubmit() {
     const amount = document.getElementById('order-amount').value;
 
     Diagnostics.log('pending', `Submitting sale with NETWORK_CHECK verification for $${amount}...`);
-    CodePanel.goToClientStep('submit');
+    await CodePanel.goToClientStep('submit');
 
     // >>> STEP:submit
     fetch('/api/ach/charge', {
@@ -157,8 +157,8 @@ function handleSubmit() {
       }),
     })
     // <<< STEP:submit
-      .then((res) => {
-        CodePanel.goToServerStep('achcharge');
+      .then(async (res) => {
+        await CodePanel.goToServerStep('achcharge');
         return res.json();
       })
       .then((data) => {

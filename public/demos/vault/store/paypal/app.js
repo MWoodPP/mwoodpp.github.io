@@ -64,9 +64,9 @@ function renderPayPalButton() {
     // specific to intent=tokenize; every other demo in this suite uses
     // intent=capture and createOrder instead.
     // >>> STEP:createbillingagreement
-    createBillingAgreement: function () {
+    createBillingAgreement: async function () {
       Diagnostics.log('pending', 'Creating vault-only billing agreement (no amount, no purchase)...');
-      CodePanel.goToClientStep('createbillingagreement');
+      await CodePanel.goToClientStep('createbillingagreement');
 
       // flow: 'vault' is the whole point of this page — see file header.
       return paypalCheckoutInstance.createPayment({
@@ -83,9 +83,9 @@ function renderPayPalButton() {
     // <<< STEP:createbillingagreement
 
     // >>> STEP:tokenize
-    onApprove: function (data) {
+    onApprove: async function (data) {
       Diagnostics.log('pending', 'Buyer approved billing agreement — tokenizing...');
-      CodePanel.goToClientStep('tokenize');
+      await CodePanel.goToClientStep('tokenize');
 
       return paypalCheckoutInstance.tokenizePayment(data).then((payload) => {
         Diagnostics.log('success', 'Nonce created', payload);
@@ -112,7 +112,7 @@ function renderPayPalButton() {
   });
 }
 
-function submitVaultStore(nonce) {
+async function submitVaultStore(nonce) {
   const customer = getCustomerDetails();
   const resultBanner = document.getElementById('result-banner');
   const vaultResult = document.getElementById('vault-result');
@@ -120,7 +120,7 @@ function submitVaultStore(nonce) {
   vaultResult.className = 'vault-result';
 
   Diagnostics.log('pending', 'Calling /api/vault/store — creating Customer + vaulting PayPal account (no transaction.sale())...');
-  CodePanel.goToClientStep('submit');
+  await CodePanel.goToClientStep('submit');
 
   // >>> STEP:submit
   return fetch('/api/vault/store', {
@@ -133,8 +133,8 @@ function submitVaultStore(nonce) {
     }),
   })
   // <<< STEP:submit
-    .then((res) => {
-      CodePanel.goToServerStep('vaultstore');
+    .then(async (res) => {
+      await CodePanel.goToServerStep('vaultstore');
       return res.json();
     })
     .then((data) => {
@@ -162,12 +162,12 @@ function submitVaultStore(nonce) {
 }
 
 // >>> STEP:setup
-function setupPayPal(clientToken) {
+async function setupPayPal(clientToken) {
   const note = document.getElementById('paypal-note');
   note.textContent = 'Setting up PayPal...';
 
   Diagnostics.log('pending', 'Creating Braintree client...');
-  CodePanel.goToClientStep('setup');
+  await CodePanel.goToClientStep('setup');
 
   braintree.client.create({ authorization: clientToken }, (err, clientInstance) => {
     if (err) {

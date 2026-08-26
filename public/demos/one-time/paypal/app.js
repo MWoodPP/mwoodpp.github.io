@@ -82,10 +82,10 @@ function renderPayPalButton() {
 
     // ----- PHASE 1: create the pending order -----
     // >>> STEP:createorder
-    createOrder: function () {
+    createOrder: async function () {
       const amount = document.getElementById('order-amount').value;
       Diagnostics.log('pending', `Creating PayPal order for $${amount}...`);
-      CodePanel.goToClientStep('createorder');
+      await CodePanel.goToClientStep('createorder');
 
       return paypalCheckoutInstance.createPayment({
         flow: 'checkout',
@@ -104,9 +104,9 @@ function renderPayPalButton() {
 
     // ----- PHASE 2: buyer approved in the popup — exchange for a nonce -----
     // >>> STEP:tokenize
-    onApprove: function (data) {
+    onApprove: async function (data) {
       Diagnostics.log('pending', 'Buyer approved — tokenizing payment...');
-      CodePanel.goToClientStep('tokenize');
+      await CodePanel.goToClientStep('tokenize');
 
       return paypalCheckoutInstance.tokenizePayment(data).then((payload) => {
         Diagnostics.log('success', 'Nonce created', payload);
@@ -133,7 +133,7 @@ function renderPayPalButton() {
   });
 }
 
-function submitCheckout(nonce) {
+async function submitCheckout(nonce) {
   const amount = document.getElementById('order-amount').value;
   const customer = getCustomerDetails();
   const billingAddress = getBillingAddress();
@@ -146,7 +146,7 @@ function submitCheckout(nonce) {
   });
 
   Diagnostics.log('pending', `Submitting transaction.sale() for $${amount}...`);
-  CodePanel.goToClientStep('submit');
+  await CodePanel.goToClientStep('submit');
 
   // >>> STEP:submit
   return fetch('/api/checkout', {
@@ -161,8 +161,8 @@ function submitCheckout(nonce) {
     }),
   })
   // <<< STEP:submit
-    .then((res) => {
-      CodePanel.goToServerStep('checkout');
+    .then(async (res) => {
+      await CodePanel.goToServerStep('checkout');
       return res.json();
     })
     .then((data) => {
@@ -184,12 +184,12 @@ function submitCheckout(nonce) {
 }
 
 // >>> STEP:setup
-function setupPayPal(clientToken) {
+async function setupPayPal(clientToken) {
   const note = document.getElementById('paypal-note');
   note.textContent = 'Setting up PayPal...';
 
   Diagnostics.log('pending', 'Creating Braintree client...');
-  CodePanel.goToClientStep('setup');
+  await CodePanel.goToClientStep('setup');
 
   braintree.client.create({ authorization: clientToken }, (err, clientInstance) => {
     if (err) {

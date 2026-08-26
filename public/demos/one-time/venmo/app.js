@@ -65,7 +65,7 @@ function getBillingAddress() {
   };
 }
 
-function submitCheckout(nonce) {
+async function submitCheckout(nonce) {
   const amount = document.getElementById('order-amount').value;
   const customer = getCustomerDetails();
   const billingAddress = getBillingAddress();
@@ -78,7 +78,7 @@ function submitCheckout(nonce) {
   });
 
   Diagnostics.log('pending', `Submitting transaction.sale() for $${amount}...`);
-  CodePanel.goToClientStep('submit');
+  await CodePanel.goToClientStep('submit');
 
   // >>> STEP:submit
   return fetch('/api/checkout', {
@@ -93,8 +93,8 @@ function submitCheckout(nonce) {
     }),
   })
   // <<< STEP:submit
-    .then((res) => {
-      CodePanel.goToServerStep('checkout');
+    .then(async (res) => {
+      await CodePanel.goToServerStep('checkout');
       return res.json();
     })
     .then((data) => {
@@ -119,7 +119,7 @@ function submitCheckout(nonce) {
 // switch; on desktop (allowDesktop: true) it triggers Braintree's own QR
 // overlay. Either way, this promise doesn't resolve until the customer has
 // actually approved on their phone — that could be seconds or minutes later.
-function handleVenmoClick() {
+async function handleVenmoClick() {
   if (!venmoInstance) {
     Diagnostics.log('error', 'Venmo instance not ready yet');
     return;
@@ -130,7 +130,7 @@ function handleVenmoClick() {
   btn.textContent = 'Waiting for scan...';
 
   Diagnostics.log('pending', 'tokenize() called — Braintree will display a QR code overlay to scan with the Venmo app.');
-  CodePanel.goToClientStep('tokenize');
+  await CodePanel.goToClientStep('tokenize');
 
   // >>> STEP:tokenize
   venmoInstance.tokenize()
@@ -158,13 +158,13 @@ function handleVenmoClick() {
 }
 
 // >>> STEP:setup
-function setupVenmo(clientToken) {
+async function setupVenmo(clientToken) {
   const note = document.getElementById('venmo-note');
   const btn = document.getElementById('venmo-btn');
   note.textContent = 'Setting up Venmo...';
 
   Diagnostics.log('pending', 'Creating Braintree client...');
-  CodePanel.goToClientStep('setup');
+  await CodePanel.goToClientStep('setup');
 
   braintree.client.create({ authorization: clientToken }, (err, clientInstance) => {
     if (err) {

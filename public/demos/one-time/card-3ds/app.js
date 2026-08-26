@@ -103,7 +103,7 @@ function buildThreeDSecureParameters(nonce, bin) {
   };
 }
 
-function submitCheckout(nonce, threeDSecureInfo) {
+async function submitCheckout(nonce, threeDSecureInfo) {
   const amount = document.getElementById('order-amount').value;
   const customer = getCustomerDetails();
   const billingAddress = getBillingAddress();
@@ -111,7 +111,7 @@ function submitCheckout(nonce, threeDSecureInfo) {
   resultBanner.className = 'result-banner';
 
   Diagnostics.log('pending', `Submitting transaction.sale() for $${amount} with 3DS-upgraded nonce...`);
-  CodePanel.goToClientStep('submit');
+  await CodePanel.goToClientStep('submit');
 
   // >>> STEP:submit
   return fetch('/api/checkout', {
@@ -126,8 +126,8 @@ function submitCheckout(nonce, threeDSecureInfo) {
     }),
   })
   // <<< STEP:submit
-    .then((res) => {
-      CodePanel.goToServerStep('checkout');
+    .then(async (res) => {
+      await CodePanel.goToServerStep('checkout');
       return res.json();
     })
     .then((data) => {
@@ -149,7 +149,7 @@ function submitCheckout(nonce, threeDSecureInfo) {
     });
 }
 
-function handleSubmit() {
+async function handleSubmit() {
   const submitBtn = document.getElementById('submit-btn');
   const resultBanner = document.getElementById('result-banner');
   resultBanner.className = 'result-banner';
@@ -163,10 +163,10 @@ function handleSubmit() {
   submitBtn.textContent = 'Tokenizing...';
 
   Diagnostics.log('pending', 'Tokenizing card details...');
-  CodePanel.goToClientStep('tokenize');
+  await CodePanel.goToClientStep('tokenize');
 
   // >>> STEP:tokenize
-  hostedFieldsInstance.tokenize((err, payload) => {
+  hostedFieldsInstance.tokenize(async (err, payload) => {
     if (err) {
       // The top-level error message ("Cannot tokenize invalid card
       // fields.") doesn't say WHICH field failed. getState() does — pull
@@ -195,10 +195,10 @@ function handleSubmit() {
 
     const threeDSecureParameters = buildThreeDSecureParameters(payload.nonce, payload.details.bin);
     Diagnostics.log('pending', 'Calling threeDSecure.verifyCard() — a challenge may appear if the card is enrolled...', threeDSecureParameters);
-    CodePanel.goToClientStep('verify3ds');
+    await CodePanel.goToClientStep('verify3ds');
 
     // >>> STEP:verify3ds
-    threeDSecureInstance.verifyCard(threeDSecureParameters, (tdsErr, response) => {
+    threeDSecureInstance.verifyCard(threeDSecureParameters, async (tdsErr, response) => {
       if (tdsErr) {
         Diagnostics.log('error', 'threeDSecure.verifyCard() failed', { code: tdsErr.code, message: tdsErr.message });
         submitBtn.disabled = false;
@@ -221,12 +221,12 @@ function handleSubmit() {
   });
 }
 
-function setupHostedFieldsAnd3DS(clientToken) {
+async function setupHostedFieldsAnd3DS(clientToken) {
   const submitBtn = document.getElementById('submit-btn');
   submitBtn.disabled = true;
 
   Diagnostics.log('pending', 'Creating Braintree client...');
-  CodePanel.goToClientStep('setup');
+  await CodePanel.goToClientStep('setup');
 
   // >>> STEP:setup
   braintree.client.create({ authorization: clientToken }, (err, clientInstance) => {

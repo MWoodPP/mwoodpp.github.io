@@ -55,12 +55,12 @@ function getCustomerDetails() {
 }
 
 // >>> STEP:setup
-function setupUsBankAccount(clientToken) {
+async function setupUsBankAccount(clientToken) {
   const submitBtn = document.getElementById('submit-btn');
   submitBtn.disabled = true;
 
   Diagnostics.log('pending', 'Creating Braintree client...');
-  CodePanel.goToClientStep('setup');
+  await CodePanel.goToClientStep('setup');
 
   braintree.client.create({ authorization: clientToken }, (err, clientInstance) => {
     if (err) {
@@ -87,7 +87,7 @@ function updateSubmitState() {
   document.getElementById('submit-btn').disabled = !usBankAccountInstance || !mandateChecked;
 }
 
-function handleSubmit() {
+async function handleSubmit() {
   const submitBtn = document.getElementById('submit-btn');
   const resultBanner = document.getElementById('result-banner');
   const vaultResult = document.getElementById('vault-result');
@@ -126,10 +126,10 @@ function handleSubmit() {
   const mandateText = 'By clicking ["Store Bank Account"], I authorize Braintree, a service of PayPal, to electronically debit my account and, if necessary, electronically credit my account to correct erroneous debits.';
 
   Diagnostics.log('pending', 'Tokenizing bank account details...', { bankDetails: { ...bankDetails, accountNumber: '••••' + bankDetails.accountNumber.slice(-4) } });
-  CodePanel.goToClientStep('tokenize');
+  await CodePanel.goToClientStep('tokenize');
 
   // >>> STEP:tokenize
-  usBankAccountInstance.tokenize({ bankDetails, mandateText }, (err, payload) => {
+  usBankAccountInstance.tokenize({ bankDetails, mandateText }, async (err, payload) => {
     if (err) {
       Diagnostics.log('error', 'Tokenization failed', { message: err.message });
       submitBtn.disabled = false;
@@ -144,7 +144,7 @@ function handleSubmit() {
     const verificationMethod = document.getElementById('ach-verification-method').value;
 
     Diagnostics.log('pending', `Calling /api/vault/store with verification method: ${verificationMethod}...`);
-    CodePanel.goToClientStep('submit');
+    await CodePanel.goToClientStep('submit');
 
     // >>> STEP:submit
     fetch('/api/vault/store', {
@@ -158,8 +158,8 @@ function handleSubmit() {
       }),
     })
     // <<< STEP:submit
-      .then((res) => {
-        CodePanel.goToServerStep('vaultstore');
+      .then(async (res) => {
+        await CodePanel.goToServerStep('vaultstore');
         return res.json();
       })
       .then((data) => {

@@ -67,7 +67,7 @@ function getBillingAddress() {
   };
 }
 
-function submitCheckout(nonce) {
+async function submitCheckout(nonce) {
   const amount = document.getElementById('order-amount').value;
   const customer = getCustomerDetails();
   const billingAddress = getBillingAddress();
@@ -80,7 +80,7 @@ function submitCheckout(nonce) {
   });
 
   Diagnostics.log('pending', `Submitting transaction.sale() for $${amount}...`);
-  CodePanel.goToClientStep('submit');
+  await CodePanel.goToClientStep('submit');
 
   // >>> STEP:submit
   return fetch('/api/checkout', {
@@ -95,8 +95,8 @@ function submitCheckout(nonce) {
     }),
   })
   // <<< STEP:submit
-    .then((res) => {
-      CodePanel.goToServerStep('checkout');
+    .then(async (res) => {
+      await CodePanel.goToServerStep('checkout');
       return res.json();
     })
     .then((data) => {
@@ -120,7 +120,7 @@ function submitCheckout(nonce) {
 // This runs when the customer clicks Google's own button. loadPaymentData()
 // is the call that actually opens Google's payment sheet — everything
 // before it just builds the request describing what we're asking for.
-function onGooglePayButtonClicked() {
+async function onGooglePayButtonClicked() {
   const amount = document.getElementById('order-amount').value;
 
   Diagnostics.log('pending', `Building payment data request for $${amount}...`);
@@ -140,7 +140,7 @@ function onGooglePayButtonClicked() {
     return;
   }
 
-  CodePanel.goToClientStep('tokenize');
+  await CodePanel.goToClientStep('tokenize');
 
   // >>> STEP:tokenize
   paymentsClient.loadPaymentData(paymentDataRequest)
@@ -183,12 +183,12 @@ function renderGooglePayButton() {
 }
 
 // >>> STEP:setup
-function setupGooglePay(clientToken) {
+async function setupGooglePay(clientToken) {
   const note = document.getElementById('gpay-note');
   note.textContent = 'Setting up Google Pay...';
 
   Diagnostics.log('pending', 'Creating Braintree client...');
-  CodePanel.goToClientStep('setup');
+  await CodePanel.goToClientStep('setup');
 
   braintree.client.create({ authorization: clientToken }, (err, clientInstance) => {
     if (err) {

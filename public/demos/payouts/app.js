@@ -90,7 +90,7 @@ function loadRecipients() {
     });
 }
 
-function handleSubmit() {
+async function handleSubmit() {
   const submitBtn = document.getElementById('submit-btn');
   const resultBanner = document.getElementById('result-banner');
   resultBanner.className = 'result-banner';
@@ -109,7 +109,7 @@ function handleSubmit() {
   submitBtn.textContent = 'Sending...';
 
   Diagnostics.log('pending', `Calling /api/payouts/credit for $${amount} to token ${paymentMethodToken}...`);
-  CodePanel.goToClientStep('submit');
+  await CodePanel.goToClientStep('submit');
 
   // >>> STEP:submit
   fetch('/api/payouts/credit', {
@@ -122,8 +122,8 @@ function handleSubmit() {
     }),
   })
   // <<< STEP:submit
-    .then((res) => {
-      CodePanel.goToServerStep('payoutscredit');
+    .then(async (res) => {
+      await CodePanel.goToServerStep('payoutscredit');
       return res.json();
     })
     .then((data) => {

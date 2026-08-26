@@ -95,6 +95,16 @@ const ConfigPanel = (() => {
         Diagnostics.log('success', 'Client token received', data.raw);
       }
 
+      // If step-by-step mode is on, this is the natural first pause: the
+      // token has arrived, but nothing has used it yet. CodePanel lives in
+      // a different shared file with no STEP marker of its own for "fetch
+      // the token" (that happens here, not in the page's own app.js), so
+      // this calls the public checkpoint() directly rather than going
+      // through goToClientStep/goToServerStep.
+      if (window.CodePanel) {
+        await CodePanel.checkpoint('initialize the payment method with this token');
+      }
+
       if (onTokenReady) onTokenReady(clientToken);
     } catch (err) {
       tokenDisplay.textContent = '(error — see diagnostics)';

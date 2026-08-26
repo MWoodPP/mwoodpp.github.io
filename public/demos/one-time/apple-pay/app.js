@@ -65,7 +65,7 @@ function getBillingAddress() {
   };
 }
 
-function submitCheckout(nonce) {
+async function submitCheckout(nonce) {
   const amount = document.getElementById('order-amount').value;
   const customer = getCustomerDetails();
   const billingAddress = getBillingAddress();
@@ -78,7 +78,7 @@ function submitCheckout(nonce) {
   });
 
   Diagnostics.log('pending', `Submitting transaction.sale() for $${amount}...`);
-  CodePanel.goToClientStep('submit');
+  await CodePanel.goToClientStep('submit');
 
   // >>> STEP:submit
   return fetch('/api/checkout', {
@@ -93,8 +93,8 @@ function submitCheckout(nonce) {
     }),
   })
   // <<< STEP:submit
-    .then((res) => {
-      CodePanel.goToServerStep('checkout');
+    .then(async (res) => {
+      await CodePanel.goToServerStep('checkout');
       return res.json();
     })
     .then((data) => {
@@ -142,9 +142,9 @@ function handleApplePayClick() {
   // performValidation() does the actual certificate-based round-trip to
   // Apple's servers on your behalf.
   // >>> STEP:merchantvalidation
-  session.onvalidatemerchant = (event) => {
+  session.onvalidatemerchant = async (event) => {
     Diagnostics.log('pending', 'Apple requested merchant validation...');
-    CodePanel.goToClientStep('merchantvalidation');
+    await CodePanel.goToClientStep('merchantvalidation');
 
     applePayInstance.performValidation({
       validationURL: event.validationURL,
@@ -163,9 +163,9 @@ function handleApplePayClick() {
 
   // Fired once the customer has authenticated with Face ID / Touch ID /
   // passcode and approved the payment on the Apple Pay sheet.
-  session.onpaymentauthorized = (event) => {
+  session.onpaymentauthorized = async (event) => {
     Diagnostics.log('pending', 'Buyer authorized payment — tokenizing...');
-    CodePanel.goToClientStep('tokenize');
+    await CodePanel.goToClientStep('tokenize');
 
     // >>> STEP:tokenize
     applePayInstance.tokenize({ token: event.payment.token })
@@ -195,7 +195,7 @@ function handleApplePayClick() {
   session.begin();
 }
 
-function setupApplePay(clientToken) {
+async function setupApplePay(clientToken) {
   const note = document.getElementById('apay-note');
   const btn = document.getElementById('apple-pay-btn');
 
@@ -216,7 +216,7 @@ function setupApplePay(clientToken) {
 
   note.textContent = 'Creating Braintree client...';
   Diagnostics.log('pending', 'Creating Braintree client...');
-  CodePanel.goToClientStep('setup');
+  await CodePanel.goToClientStep('setup');
 
   // >>> STEP:setup
   braintree.client.create({ authorization: clientToken }, (err, clientInstance) => {

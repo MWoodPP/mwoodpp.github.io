@@ -50,12 +50,12 @@ function getCustomerDetails() {
 }
 
 // >>> STEP:setup
-function setupHostedFields(clientToken) {
+async function setupHostedFields(clientToken) {
   const submitBtn = document.getElementById('submit-btn');
   submitBtn.disabled = true;
 
   Diagnostics.log('pending', 'Creating Braintree client...');
-  CodePanel.goToClientStep('setup');
+  await CodePanel.goToClientStep('setup');
 
   braintree.client.create({ authorization: clientToken }, (err, clientInstance) => {
     if (err) {
@@ -103,10 +103,10 @@ async function handleSubmit() {
   submitBtn.textContent = 'Storing...';
 
   Diagnostics.log('pending', 'Tokenizing card details...');
-  CodePanel.goToClientStep('tokenize');
+  await CodePanel.goToClientStep('tokenize');
 
   // >>> STEP:tokenize
-  hostedFieldsInstance.tokenize((err, payload) => {
+  hostedFieldsInstance.tokenize(async (err, payload) => {
     if (err) {
       Diagnostics.log('error', 'Tokenization failed', { message: err.message });
       submitBtn.disabled = false;
@@ -120,7 +120,7 @@ async function handleSubmit() {
     const customer = getCustomerDetails();
 
     Diagnostics.log('pending', 'Calling /api/vault/store — creating Customer + vaulting payment method (no transaction.sale())...');
-    CodePanel.goToClientStep('submit');
+    await CodePanel.goToClientStep('submit');
 
     // >>> STEP:submit
     fetch('/api/vault/store', {
@@ -133,8 +133,8 @@ async function handleSubmit() {
       }),
     })
     // <<< STEP:submit
-      .then((res) => {
-        CodePanel.goToServerStep('vaultstore');
+      .then(async (res) => {
+        await CodePanel.goToServerStep('vaultstore');
         return res.json();
       })
       .then((data) => {

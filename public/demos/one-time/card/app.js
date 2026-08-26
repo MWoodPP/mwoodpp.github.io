@@ -75,12 +75,12 @@ function getBillingAddress() {
 // object is the shared foundation; each payment method's own component
 // builds on top of it.
 // >>> STEP:setup
-function setupHostedFields(clientToken) {
+async function setupHostedFields(clientToken) {
   const submitBtn = document.getElementById('submit-btn');
   submitBtn.disabled = true;
 
   Diagnostics.log('pending', 'Creating Braintree client...');
-  CodePanel.goToClientStep('setup');
+  await CodePanel.goToClientStep('setup');
 
   braintree.client.create({ authorization: clientToken }, (err, clientInstance) => {
     if (err) {
@@ -132,10 +132,10 @@ async function handleSubmit() {
   submitBtn.textContent = 'Processing...';
 
   Diagnostics.log('pending', 'Tokenizing card details...');
-  CodePanel.goToClientStep('tokenize');
+  await CodePanel.goToClientStep('tokenize');
 
   // >>> STEP:tokenize
-  hostedFieldsInstance.tokenize((err, payload) => {
+  hostedFieldsInstance.tokenize(async (err, payload) => {
     if (err) {
       Diagnostics.log('error', 'Tokenization failed', { message: err.message });
       submitBtn.disabled = false;
@@ -160,7 +160,7 @@ async function handleSubmit() {
     });
 
     Diagnostics.log('pending', `Submitting transaction.sale() for $${amount}...`);
-    CodePanel.goToClientStep('submit');
+    await CodePanel.goToClientStep('submit');
 
     // >>> STEP:submit
     fetch('/api/checkout', {
@@ -175,11 +175,11 @@ async function handleSubmit() {
       }),
     })
     // <<< STEP:submit
-      .then((res) => {
+      .then(async (res) => {
         // The request has left the browser — this is the moment to flip
         // the Code Panel over to server.js and show the handler that's
         // about to process it.
-        CodePanel.goToServerStep('checkout');
+        await CodePanel.goToServerStep('checkout');
         return res.json();
       })
       .then((data) => {

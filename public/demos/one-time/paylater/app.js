@@ -126,10 +126,10 @@ function renderPayLaterButton() {
     fundingSource: window.paypal.FUNDING.PAYLATER,
 
     // >>> STEP:createorder
-    createOrder: function () {
+    createOrder: async function () {
       const amount = document.getElementById('order-amount').value;
       Diagnostics.log('pending', `Creating Pay Later order for $${amount}...`);
-      CodePanel.goToClientStep('createorder');
+      await CodePanel.goToClientStep('createorder');
 
       return paypalCheckoutInstance.createPayment({
         flow: 'checkout',
@@ -147,9 +147,9 @@ function renderPayLaterButton() {
     // <<< STEP:createorder
 
     // >>> STEP:tokenize
-    onApprove: function (data) {
+    onApprove: async function (data) {
       Diagnostics.log('pending', 'Buyer approved financing terms — tokenizing...');
-      CodePanel.goToClientStep('tokenize');
+      await CodePanel.goToClientStep('tokenize');
 
       return paypalCheckoutInstance.tokenizePayment(data).then((payload) => {
         Diagnostics.log('success', 'Nonce created', payload);
@@ -182,7 +182,7 @@ function renderPayLaterButton() {
   });
 }
 
-function submitCheckout(nonce) {
+async function submitCheckout(nonce) {
   const amount = document.getElementById('order-amount').value;
   const customer = getCustomerDetails();
   const billingAddress = getBillingAddress();
@@ -195,7 +195,7 @@ function submitCheckout(nonce) {
   });
 
   Diagnostics.log('pending', `Submitting transaction.sale() for $${amount}...`);
-  CodePanel.goToClientStep('submit');
+  await CodePanel.goToClientStep('submit');
 
   // >>> STEP:submit
   return fetch('/api/checkout', {
@@ -210,8 +210,8 @@ function submitCheckout(nonce) {
     }),
   })
   // <<< STEP:submit
-    .then((res) => {
-      CodePanel.goToServerStep('checkout');
+    .then(async (res) => {
+      await CodePanel.goToServerStep('checkout');
       return res.json();
     })
     .then((data) => {
@@ -233,12 +233,12 @@ function submitCheckout(nonce) {
 }
 
 // >>> STEP:setup
-function setupPayLater(clientToken) {
+async function setupPayLater(clientToken) {
   const note = document.getElementById('paylater-note');
   note.textContent = 'Setting up Pay Later...';
 
   Diagnostics.log('pending', 'Creating Braintree client...');
-  CodePanel.goToClientStep('setup');
+  await CodePanel.goToClientStep('setup');
 
   braintree.client.create({ authorization: clientToken }, (err, clientInstance) => {
     if (err) {
